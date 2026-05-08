@@ -1,31 +1,19 @@
 from __future__ import annotations
 
-import argparse
 from functools import lru_cache
-from pathlib import Path
 from typing import Any, cast
 
 from google.cloud import bigquery
 
 import pandas as pd
-import io
 from dash import Dash, Input, Output, dash_table, dcc, html
 from plotly.colors import sample_colorscale
 import plotly.graph_objects as go
 
-from metrics_graphs import (
-    _coerce_age,
-    _map_gender,
-    _map_hispanic,
-    _normalize_yes_no,
-    summarize_efl_scores_pivot,
-)
 
 client = bigquery.Client()
 
-def fetch_data():
-    query = "SELECT * EXCEPT (uuid, zip_code, residence_aggregated) FROM `endel-ell-study.caep_data_dashboard.sample_pop_demos`"
-    return client.query(query).to_dataframe()
+TABLE = "`endel-ell-study.caep_data_dashboard.sample_pop_demos`"
 
 BINARY_FIELDS = {
     "latin_american",
@@ -42,31 +30,238 @@ BINARY_FIELDS = {
 COLOR_SEQUENCE = ["#1f4e79", "#f97316", "#15803d", "#dc2626", "#0f766e"]
 
 
+def _year_conditions(years: list[str] | None) -> list[str]:
+    if not years:
+        return []
+    quoted = ", ".join(f"'{y}'" for y in years)
+    return [f"SUBSTR(CAST(sample_first_term AS STRING), 1, 2) IN ({quoted})"]
+
+
+def _where(conditions: list[str]) -> str:
+    return ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+
 @lru_cache(maxsize=1)
-
-
 def field_options_from_csv() -> list[dict]:
-    df = fetch_data()
+    query = f"SELECT * EXCEPT (uuid, zip_code, residence_aggregated) FROM {TABLE} LIMIT 0"
+    schema = client.query(query).result().schema
     return [
-        {"label": col.replace("_", " ").title(), "value": col}
-        for col in df.columns
-        if col != "uuid"
+        {"label": field.name.replace("_", " ").title(), "value": field.name}
+        for field in schema
     ]
 
 
 def starting_year_options() -> list[dict]:
-    df = fetch_data()
-    if "sample_first_term" not in df.columns:
-        return []
-    years = (
-        df["sample_first_term"]
-        .dropna()
-        .astype(str)
-        .str[:2]
-        .unique()
+    query = f"""
+        SELECT DISTINCT SUBSTR(CAST(sample_first_term AS STRING), 1, 2) AS yr
+        FROM {TABLE}
+        WHERE sample_first_term IS NOT NULL
+        ORDER BY yr
+    """
+    return [{"label": f"20{row.yr}", "value": row.yr} for row in client.query(query).result()]
+
+
+def fetch_summary_counts(years: list[str] | None) -> dict:
+    where = _where(_year_conditions(years))
+    query = f"""
+        SELECT
+            COUNT(*) AS total_students,
+            COUNTIF(earliest_efl_score IS NOT NULL AND latest_efl_score IS NOT NULL) AS with_efl,
+            COUNTIF(main_campus_name IS NOT NULL) AS with_campus,
+            APPROX_QUANTILES(SAFE_CAST(age_at_first_term AS FLOAT64), 2)[OFFSET(1)] AS median_age,
+            COUNT(DISTINCT main_campus_name) AS unique_campuses
+        FROM {TABLE}
+        {where}
+    """
+    row = next(client.query(query).result())
+    return {
+        "total_students": row.total_students,
+        "with_efl": row.with_efl,
+        "with_campus": row.with_campus,
+        "median_age": row.median_age,
+        "unique_campuses": row.unique_campuses,
+    }
+
+
+def fetch_gender_counts(years: list[str] | None) -> pd.Series:
+    where = _where(_year_conditions(years))
+    query = f"""
+        SELECT
+            CASE UPPER(TRIM(COALESCE(CAST(gender AS STRING), '')))
+                WHEN 'F' THEN 'Female'
+                WHEN 'M' THEN 'Male'
+                WHEN 'X' THEN 'Nonbinary/Unknown'
+                ELSE 'Unknown'
+            END AS gender_label,
+            COUNT(*) AS cnt
+        FROM {TABLE}
+        {where}
+        GROUP BY gender_label
+    """
+    data = {row.gender_label: row.cnt for row in client.query(query).result()}
+    return pd.Series(data).reindex(["Female", "Male", "Nonbinary/Unknown", "Unknown"], fill_value=0)
+
+
+def fetch_hispanic_counts(years: list[str] | None) -> pd.Series:
+    where = _where(_year_conditions(years))
+    query = f"""
+        SELECT
+            CASE UPPER(TRIM(COALESCE(CAST(hispanic_non_hispanic AS STRING), '')))
+                WHEN 'Y' THEN 'Hispanic/Latino'
+                WHEN 'N' THEN 'Not Hispanic/Latino'
+                ELSE 'Unknown'
+            END AS hispanic_label,
+            COUNT(*) AS cnt
+        FROM {TABLE}
+        {where}
+        GROUP BY hispanic_label
+    """
+    data = {row.hispanic_label: row.cnt for row in client.query(query).result()}
+    return pd.Series(data).reindex(["Hispanic/Latino", "Not Hispanic/Latino", "Unknown"], fill_value=0)
+
+
+def fetch_race_counts(years: list[str] | None) -> pd.Series:
+    where = _where(_year_conditions(years))
+    race_cols = {
+        "latin_american": "Latin American",
+        "aapi": "AAPI",
+        "black": "Black",
+        "indigenous_american": "Indigenous American",
+        "white": "White",
+        "no_data": "No Data",
+    }
+    selects = ",\n            ".join(
+        f"COUNTIF(UPPER(TRIM(CAST({col} AS STRING))) = 'Y') AS {col}"
+        for col in race_cols
     )
-    sorted_years = sorted(years)
-    return [{"label": f"20{y}", "value": y} for y in sorted_years]
+    query = f"SELECT {selects} FROM {TABLE} {where}"
+    row = next(client.query(query).result())
+    data = {label: getattr(row, col) for col, label in race_cols.items()}
+    return pd.Series(data).sort_values(ascending=False)
+
+
+def fetch_age_bucket_counts(years: list[str] | None) -> pd.Series:
+    where = _where(_year_conditions(years))
+    query = f"""
+        SELECT
+            CASE
+                WHEN SAFE_CAST(age_at_first_term AS FLOAT64) <= 24 THEN 'Under 24'
+                WHEN SAFE_CAST(age_at_first_term AS FLOAT64) <= 50 THEN '25 to 50'
+                WHEN SAFE_CAST(age_at_first_term AS FLOAT64) > 50 THEN 'Over 50'
+            END AS age_bucket,
+            COUNT(*) AS cnt
+        FROM {TABLE}
+        {where}
+        GROUP BY age_bucket
+        HAVING age_bucket IS NOT NULL
+    """
+    data = {row.age_bucket: row.cnt for row in client.query(query).result()}
+    return pd.Series(data).reindex(["Under 24", "25 to 50", "Over 50"], fill_value=0)
+
+
+def fetch_top_campus_counts(years: list[str] | None) -> pd.Series:
+    where = _where(_year_conditions(years))
+    query = f"""
+        SELECT
+            COALESCE(NULLIF(TRIM(main_campus_name), ''), 'Unknown') AS campus,
+            COUNT(*) AS cnt
+        FROM {TABLE}
+        {where}
+        GROUP BY campus
+        ORDER BY cnt DESC
+        LIMIT 10
+    """
+    data = {row.campus: row.cnt for row in client.query(query).result()}
+    return pd.Series(data)
+
+
+def fetch_efl_heatmap_data(x_col: str, years: list[str] | None) -> pd.DataFrame:
+    conditions = _year_conditions(years) + [f"{x_col} IS NOT NULL", "highest_level IS NOT NULL"]
+    where = _where(conditions)
+    query = f"""
+        SELECT
+            SAFE_CAST({x_col} AS INT64) AS x_val,
+            SAFE_CAST(highest_level AS INT64) AS y_val,
+            COUNT(*) AS cnt
+        FROM {TABLE}
+        {where}
+        GROUP BY x_val, y_val
+        HAVING x_val IS NOT NULL AND y_val IS NOT NULL
+    """
+    rows = list(client.query(query).result())
+    if not rows:
+        return pd.DataFrame()
+    data = pd.DataFrame([(r.x_val, r.y_val, r.cnt) for r in rows], columns=["x_val", "y_val", "cnt"])
+    levels = list(range(1, 9))
+    return (
+        data.pivot_table(index="y_val", columns="x_val", values="cnt", aggfunc="sum", fill_value=0)
+        .reindex(index=levels, columns=levels, fill_value=0)
+    )
+
+
+def fetch_binary_counts(column: str, years: list[str] | None) -> pd.Series:
+    where = _where(_year_conditions(years))
+    query = f"""
+        SELECT
+            CASE
+                WHEN UPPER(TRIM(CAST({column} AS STRING))) IN ('Y', 'YES', 'TRUE', '1') THEN 'Yes'
+                WHEN UPPER(TRIM(CAST({column} AS STRING))) IN ('N', 'NO', 'FALSE', '0') THEN 'No'
+                ELSE 'Unknown'
+            END AS val,
+            COUNT(*) AS cnt
+        FROM {TABLE}
+        {where}
+        GROUP BY val
+    """
+    data = {row.val: row.cnt for row in client.query(query).result()}
+    return pd.Series(data).reindex(["Yes", "No", "Unknown"], fill_value=0)
+
+
+def fetch_field_counts(column: str, years: list[str] | None) -> pd.Series:
+    where = _where(_year_conditions(years))
+    query = f"""
+        SELECT
+            COALESCE(NULLIF(TRIM(CAST({column} AS STRING)), ''), 'Unknown') AS val,
+            COUNT(*) AS cnt
+        FROM {TABLE}
+        {where}
+        GROUP BY val
+        ORDER BY cnt DESC
+    """
+    data = {row.val: row.cnt for row in client.query(query).result()}
+    return pd.Series(data)
+
+
+def fetch_categorical_counts(column: str, years: list[str] | None) -> pd.Series:
+    if column == "gender":
+        return fetch_gender_counts(years)
+    if column == "hispanic_non_hispanic":
+        return fetch_hispanic_counts(years)
+    if column in BINARY_FIELDS:
+        return fetch_binary_counts(column, years)
+    return fetch_field_counts(column, years)
+
+
+def fetch_crosstab(x_col: str, y_col: str, years: list[str] | None) -> pd.DataFrame:
+    where = _where(_year_conditions(years))
+    query = f"""
+        SELECT
+            COALESCE(NULLIF(TRIM(CAST({x_col} AS STRING)), ''), 'Unknown') AS x_val,
+            COALESCE(NULLIF(TRIM(CAST({y_col} AS STRING)), ''), 'Unknown') AS y_val,
+            COUNT(*) AS cnt
+        FROM {TABLE}
+        {where}
+        GROUP BY x_val, y_val
+    """
+    rows = list(client.query(query).result())
+    if not rows:
+        return pd.DataFrame()
+    data = pd.DataFrame([(r.x_val, r.y_val, r.cnt) for r in rows], columns=["x_val", "y_val", "cnt"])
+    x_top = data.groupby("x_val")["cnt"].sum().nlargest(12).index
+    y_top = data.groupby("y_val")["cnt"].sum().nlargest(12).index
+    data["x_val"] = data["x_val"].where(data["x_val"].isin(x_top), other="Other")
+    data["y_val"] = data["y_val"].where(data["y_val"].isin(y_top), other="Other")
+    return data.pivot_table(index="x_val", columns="y_val", values="cnt", aggfunc="sum", fill_value=0)
 
 
 def blank_figure(title: str, message: str) -> go.Figure:
@@ -153,183 +348,12 @@ def heatmap_figure(table: pd.DataFrame, title: str) -> go.Figure:
     return figure
 
 
-def normalize_binary(series: pd.Series) -> pd.Series:
-    values = series.fillna("Unknown").astype(str).str.strip().str.upper()
-    mapping = {
-        "Y": "Yes",
-        "YES": "Yes",
-        "TRUE": "Yes",
-        "1": "Yes",
-        "N": "No",
-        "NO": "No",
-        "FALSE": "No",
-        "0": "No",
-    }
-    return values.map(
-        lambda value: mapping.get(
-            str(value),
-            "Unknown" if str(value) in {"", "NAN", "NONE"} else str(value).title(),
-        )
-    )
-
-
-def summarize_column(series: pd.Series) -> pd.Series:
-    values = series.fillna("Unknown").astype(str).str.strip().replace({"": "Unknown"})
-    return values.value_counts().sort_values(ascending=False)
-
-
-def race_indicator_counts(df: pd.DataFrame) -> pd.Series:
-    labels = {
-        "latin_american": "Latin American",
-        "aapi": "AAPI",
-        "black": "Black",
-        "indigenous_american": "Indigenous American",
-        "white": "White",
-        "no_data": "No Data",
-    }
-    values = {
-        label: (_normalize_yes_no(df[column]) == "Y").sum()
-        for column, label in labels.items()
-        if column in df.columns
-    }
-    return pd.Series(values).sort_values(ascending=False)
-
-
-def age_bucket_counts(df: pd.DataFrame) -> pd.Series:
-    if "age_at_first_term" not in df.columns:
-        return pd.Series(dtype=int)
-
-    age = _coerce_age(df["age_at_first_term"])
-    buckets = pd.cut(
-        age,
-        bins=[float("-inf"), 24, 50, float("inf")],
-        labels=["Under 24", "25 to 50", "Over 50"],
-        right=True,
-    )
-    return buckets.value_counts().reindex(["Under 24", "25 to 50", "Over 50"], fill_value=0)
-
-
-def top_campus_counts(df: pd.DataFrame) -> pd.Series:
-    if "main_campus_name" not in df.columns:
-        return pd.Series(dtype=int)
-
-    values = (
-        df["main_campus_name"]
-        .fillna("Unknown")
-        .astype(str)
-        .str.strip()
-        .replace({"": "Unknown"})
-        .value_counts()
-        .head(10)
-    )
-    return values
-
-
-def categorical_counts(df: pd.DataFrame, column: str) -> pd.Series:
-    if column not in df.columns:
-        return pd.Series(dtype=int)
-
-    if column == "gender":
-        return _map_gender(df[column]).value_counts().reindex(
-            ["Female", "Male", "Nonbinary/Unknown", "Unknown"], fill_value=0
-        )
-
-    if column == "hispanic_non_hispanic":
-        return _map_hispanic(df[column]).value_counts().reindex(
-            ["Hispanic/Latino", "Not Hispanic/Latino", "Unknown"], fill_value=0
-        )
-
-    if column in BINARY_FIELDS:
-        return normalize_binary(df[column]).value_counts().reindex(["Yes", "No", "Unknown"], fill_value=0)
-
-    return summarize_column(df[column])
-
-
-def exploratory_figure(df: pd.DataFrame, x_column: str | None, y_column: str | None) -> go.Figure:
-    if not x_column or x_column not in df.columns:
-        return blank_figure("Explore the Data", "Choose a field to create an additional chart.")
-
-    x_counts = categorical_counts(df, x_column)
-    if y_column and y_column in df.columns:
-        x_values = df[x_column].fillna("Unknown").astype(str).str.strip().replace({"": "Unknown"})
-        y_values = df[y_column].fillna("Unknown").astype(str).str.strip().replace({"": "Unknown"})
-
-        x_top = x_values.value_counts().head(12).index
-        y_top = y_values.value_counts().head(12).index
-
-        table = pd.crosstab(
-            x_values.where(x_values.isin(x_top), other="Other"),
-            y_values.where(y_values.isin(y_top), other="Other"),
-        )
-        return heatmap_figure(table, f"{x_column} by {y_column}")
-
-    return bar_figure(x_counts.head(15), f"Distribution of {x_column}", COLOR_SEQUENCE[0])
-
-
-def summary_cards(df: pd.DataFrame) -> list[html.Div]:
-    total_students = len(df)
-    with_efl = 0
-    if {"earliest_efl_score", "latest_efl_score"}.issubset(df.columns):
-        with_efl = df[["earliest_efl_score", "latest_efl_score"]].notna().all(axis=1).sum()
-
-    with_campus = df["main_campus_name"].notna().sum() if "main_campus_name" in df.columns else 0
-    median_age = "N/A"
-    if "age_at_first_term" in df.columns:
-        age = _coerce_age(df["age_at_first_term"])
-        if age.notna().any():
-            median_age = f"{age.median():.0f}"
-
-    unique_campuses = (
-        df["main_campus_name"].fillna("Unknown").astype(str).str.strip().replace({"": "Unknown"}).nunique()
-        if "main_campus_name" in df.columns
-        else 0
-    )
-
-    cards = [
-        ("Students", f"{total_students:,}"),
-        ("With EFL Scores", f"{with_efl:,}"),
-        ("With Campus", f"{with_campus:,}"),
-        ("Median Age", median_age),
-        ("Campuses", f"{unique_campuses:,}"),
-    ]
-    return [
-        html.Div(
-            [
-                html.Div(label, className="summary-card__label"),
-                html.Div(value, className="summary-card__value"),
-            ],
-            className="summary-card",
-        )
-        for label, value in cards
-    ]
-
-
-def efl_heatmap(df: pd.DataFrame, x_col: str = "first_level") -> go.Figure:
-    for col in (x_col, "highest_level"):
-        if col not in df.columns:
-            return blank_figure("EFL Level Progression", f"Column '{col}' not found in data.")
-
-    x_vals = pd.to_numeric(df[x_col], errors="coerce").dropna()
-    y_vals = pd.to_numeric(df["highest_level"], errors="coerce").dropna()
-    valid = df[[x_col, "highest_level"]].apply(pd.to_numeric, errors="coerce").dropna()
-
-    if valid.empty:
+def efl_heatmap(pivot_table: pd.DataFrame, x_col: str) -> go.Figure:
+    if pivot_table.empty:
         return blank_figure("EFL Level Progression", "No level data available.")
-
-    levels = list(range(1, 9))
-    table = pd.crosstab(
-        valid["highest_level"].astype(int),
-        valid[x_col].astype(int),
-    ).reindex(index=levels, columns=levels, fill_value=0)
-
     x_label = "First Level" if x_col == "first_level" else "Lowest Level"
-    title = f"{x_label} vs Highest Level"
-
-    fig = heatmap_figure(table, title)
-    fig.update_layout(
-        xaxis_title=x_label,
-        yaxis_title="Highest Level",
-    )
+    fig = heatmap_figure(pivot_table, f"{x_label} vs Highest Level")
+    fig.update_layout(xaxis_title=x_label, yaxis_title="Highest Level")
     return fig
 
 
@@ -401,6 +425,79 @@ def efl_pivot_table_component(df: pd.DataFrame) -> dash_table.DataTable | html.D
         style_data={"border": "1px solid #e2e8f0"},
         style_data_conditional=gradient_styles,  # type: ignore[arg-type]
     )
+
+def summarize_efl_scores_pivot(df: pd.DataFrame) -> pd.DataFrame:
+	required_columns = ["earliest_efl_score", "latest_efl_score"]
+	missing_columns = [column for column in required_columns if column not in df.columns]
+	if missing_columns:
+		raise ValueError(
+			"Missing required EFL score columns: " + ", ".join(missing_columns)
+		)
+
+	earliest = (
+		df["earliest_efl_score"]
+		.fillna("Missing")
+		.astype(str)
+		.str.strip()
+		.replace("", "Missing")
+	)
+	latest = (
+		df["latest_efl_score"]
+		.fillna("Missing")
+		.astype(str)
+		.str.strip()
+		.replace("", "Missing")
+	)
+
+	pivot_table = pd.crosstab(
+		index=earliest,
+		columns=latest,
+		margins=True,
+		margins_name="Total",
+	)
+	pivot_table.index.name = "earliest_efl_score"
+	pivot_table.columns.name = "latest_efl_score"
+	return pivot_table
+
+def summary_cards(counts: dict) -> list[html.Div]:
+    median_age_raw = counts.get("median_age")
+    median_age = f"{median_age_raw:.0f}" if median_age_raw is not None else "N/A"
+
+    cards = [
+        ("Students", f"{counts['total_students']:,}"),
+        ("With EFL Scores", f"{counts['with_efl']:,}"),
+        ("With Campus", f"{counts['with_campus']:,}"),
+        ("Median Age", median_age),
+        ("Campuses", f"{counts['unique_campuses']:,}"),
+    ]
+    return [
+        html.Div(
+            [
+                html.Div(label, className="summary-card__label"),
+                html.Div(value, className="summary-card__value"),
+            ],
+            className="summary-card",
+        )
+        for label, value in cards
+    ]
+
+
+def _fmt_label(v: str) -> str:
+    try:
+        f = float(v)
+        return str(int(f)) if f == int(f) else v
+    except (ValueError, TypeError):
+        return v
+
+
+def _sort_key(v: str):
+    lower = v.lower()
+    if lower in ("unknown", "missing"):
+        return (2, 0.0, lower)
+    try:
+        return (0, float(v), "")
+    except (ValueError, TypeError):
+        return (1, 0.0, lower)
 
 
 def build_layout() -> html.Div:
@@ -587,70 +684,53 @@ server = app.server
     Input("y-sort-toggle", "value"),
 )
 def update_dashboard(selected_years: list[str] | None, x_field: str, y_field: str, efl_x_col: str, x_sort: str, y_sort: str):
-    df = fetch_data()
-    if selected_years:
-        year_prefix = df["sample_first_term"].astype(str).str[:2]
-        df = df[year_prefix.isin(selected_years)]
+    gender_counts = fetch_gender_counts(selected_years)
+    hispanic_counts = fetch_hispanic_counts(selected_years)
+    race_counts = fetch_race_counts(selected_years)
+    age_counts = fetch_age_bucket_counts(selected_years)
+    campus_counts = fetch_top_campus_counts(selected_years)
+    efl_table = fetch_efl_heatmap_data(efl_x_col, selected_years)
+    counts = fetch_summary_counts(selected_years)
 
-    gender_counts = categorical_counts(df, "gender")
-    hispanic_counts = categorical_counts(df, "hispanic_non_hispanic")
-    race_counts = race_indicator_counts(df)
-    age_counts = age_bucket_counts(df)
-    campus_counts = top_campus_counts(df)
-
-    figures = (
-        bar_figure(gender_counts, "Gender Distribution", COLOR_SEQUENCE[0]),
-        bar_figure(hispanic_counts, "Hispanic / Latino Ethnicity Distribution", COLOR_SEQUENCE[1]),
-        bar_figure(race_counts, "Race Indicator Distribution", COLOR_SEQUENCE[2]),
-        bar_figure(age_counts, "Age at First Term Buckets", COLOR_SEQUENCE[3]),
-        bar_figure(campus_counts, "Top 10 Main Campuses", COLOR_SEQUENCE[4]),
-        efl_heatmap(df, efl_x_col),
-        exploratory_figure(df, x_field, y_field or None),
-    )
-
-    def _fmt_label(v: str) -> str:
-        try:
-            f = float(v)
-            return str(int(f)) if f == int(f) else v
-        except (ValueError, TypeError):
-            return v
-
-    def _sort_key(v: str):
-        lower = v.lower()
-        if lower in ("unknown", "missing"):
-            return (2, 0.0, lower)
-        try:
-            return (0, float(v), "")
-        except (ValueError, TypeError):
-            return (1, 0.0, lower)
+    if x_field and y_field:
+        crosstab = fetch_crosstab(x_field, y_field, selected_years)
+        explore_fig = heatmap_figure(crosstab, f"{x_field} by {y_field}")
+    elif x_field:
+        x_explore_counts = fetch_categorical_counts(x_field, selected_years)
+        explore_fig = bar_figure(x_explore_counts.head(15), f"Distribution of {x_field}", COLOR_SEQUENCE[0])
+    else:
+        explore_fig = blank_figure("Explore the Data", "Choose a field to create an additional chart.")
 
     def _field_bar(col: str, color: str, sort_by: str) -> go.Figure:
-        if not col or col not in df.columns:
+        if not col:
             return blank_figure("", "No field selected.")
         title = col.replace("_", " ").title()
-        counts = categorical_counts(df, col)
+        field_counts = fetch_categorical_counts(col, selected_years)
         if sort_by == "count":
-            counts = counts.sort_values(ascending=False)
+            field_counts = field_counts.sort_values(ascending=False)
         else:
-            counts = counts.reindex(sorted(counts.index.astype(str), key=_sort_key))
-        counts.index = [_fmt_label(v) for v in counts.index]
-        n = len(counts)
-        fig = bar_figure(counts, title, color)
+            field_counts = field_counts.reindex(sorted(field_counts.index.astype(str), key=_sort_key))
+        field_counts.index = [_fmt_label(v) for v in field_counts.index]
+        n = len(field_counts)
+        fig = bar_figure(field_counts, title, color)
         fig.update_layout(autosize=False, width=max(n * 55, 550))
         return fig
 
     x_fig = _field_bar(x_field, COLOR_SEQUENCE[0], x_sort)
     y_fig = _field_bar(y_field, COLOR_SEQUENCE[1], y_sort)
 
-    return (*figures, x_fig, y_fig, summary_cards(df))
-
-
-# def main() -> None:
-#     parser = argparse.ArgumentParser(description="Launch the Plotly Dash demographics dashboard.")
-#     parser.add_argument("--debug", action="store_true", help="Run the Dash development server in debug mode.")
-#     args = parser.parse_args()
-
-#     app.run()
+    return (
+        bar_figure(gender_counts, "Gender Distribution", COLOR_SEQUENCE[0]),
+        bar_figure(hispanic_counts, "Hispanic / Latino Ethnicity Distribution", COLOR_SEQUENCE[1]),
+        bar_figure(race_counts, "Race Indicator Distribution", COLOR_SEQUENCE[2]),
+        bar_figure(age_counts, "Age at First Term Buckets", COLOR_SEQUENCE[3]),
+        bar_figure(campus_counts, "Top 10 Main Campuses", COLOR_SEQUENCE[4]),
+        efl_heatmap(efl_table, efl_x_col),
+        explore_fig,
+        x_fig,
+        y_fig,
+        summary_cards(counts),
+    )
 
 
 if __name__ == "__main__":
