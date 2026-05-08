@@ -645,15 +645,13 @@ def update_dashboard(selected_years: list[str] | None, x_field: str, y_field: st
     return (*figures, x_fig, y_fig, summary_cards(df))
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Launch the Plotly Dash demographics dashboard.")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind the dashboard to.")
-    parser.add_argument("--port", type=int, default=8080, help="Port to bind the dashboard to.")
-    parser.add_argument("--debug", action="store_true", help="Run the Dash development server in debug mode.")
-    args = parser.parse_args()
+# def main() -> None:
+#     parser = argparse.ArgumentParser(description="Launch the Plotly Dash demographics dashboard.")
+#     parser.add_argument("--debug", action="store_true", help="Run the Dash development server in debug mode.")
+#     args = parser.parse_args()
 
-    app.run(debug=args.debug, host=args.host, port=args.port)
+#     app.run()
 
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=False)
