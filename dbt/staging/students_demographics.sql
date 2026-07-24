@@ -5,7 +5,7 @@
 --
 -- Source logic: "demographics study.sql". Race is decoded from the sr1318st.sb29
 -- bitstring; gender from sb04. Citizenship / highest education are read over the
--- study window (gi03 between 170 and 239); age is taken at the student's first
+-- study window (gi03 between 175 and 234); age is taken at the student's first
 -- recorded term.
 
 with students as (
@@ -43,7 +43,7 @@ citizenship as (
         (array_agg(sb06 order by gi03 asc))[1]  as citizenship_earliest,
         (array_agg(sb06 order by gi03 desc))[1] as citizenship_latest
     from {{ source('caep_data', 'sr1318st') }}
-    where gi03 between 170 and 239
+    where gi03 between 175 and 234
     group by maskedsb00
 
 ),
@@ -55,7 +55,7 @@ highest_ed as (
         maskedsb00,
         min(left(sb11, 1)) as highest_ed
     from {{ source('caep_data', 'sr1318st') }}
-    where gi03 between 170 and 239
+    where gi03 between 175 and 234
     group by maskedsb00
 
 ),

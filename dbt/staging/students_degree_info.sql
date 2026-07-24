@@ -24,7 +24,7 @@ awards as (
         to_date(sp03::text, 'YYYYMMDD')      as degree_date
     from {{ source('caep_data', 'sr1318sp') }}
     where sp03 is not null
-      and gi03 >= 170
+      and gi03 >= 175
 
 ),
 
@@ -52,7 +52,7 @@ highest_degree as (
     from awards a
     join {{ source('caep_data', 'sp_award_types') }} t
         on a.award_code = t.award_code
-    where a.gi03 between 170 and 239
+    where a.gi03 between 175 and 234
     group by a.maskedsb00
 
 ),

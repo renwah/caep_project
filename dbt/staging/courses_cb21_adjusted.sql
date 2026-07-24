@@ -12,17 +12,17 @@ select
     c.cb21,
     c.cb03,
     case
-        when c.cb03 in ('493084', '493085', '493086', '493087') then 1 else 0
+        when c.cb03 in ('493084', '493085', '493086', '493087') then true else false
     end as is_esl_course,
     case
         when c.cb03 in ('493084', '493085', '493086', '493087') and c.cb04 = 'N'
-        then 1
-        else 0
+        then true
+        else false
     end as is_noncredit_esl_course,
     case
         when c.cb03 in ('493084', '493085', '493086', '493087') and c.cb04 in ('C', 'D')
-        then 1
-        else 0
+        then true
+        else false
     end as is_credit_esl_course,
     case
         when c.cb03 in ('493084', '493085', '493086', '493087') and c.cb04 = 'N'

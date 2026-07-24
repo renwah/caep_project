@@ -82,8 +82,11 @@ select
     -- cohort + completion
     cohort,
     first_academic_year,
-    terms_to_full_completion_adjusted_bf_to_a,
-    full_completion_levels_adjusted_bf_to_a,
+    first_college_name,
+    first_cb21_level,
+    first_cb21_level_adj,
+    first_college_name_adj,
+    first_college_group_adj
 
     -- study-sample category based on the first college attended
     case
