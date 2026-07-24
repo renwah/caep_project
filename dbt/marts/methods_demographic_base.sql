@@ -16,7 +16,7 @@
 with students as (
 
     select * from {{ ref('students_cohort_info') }}
-    where first_term_enrolled between 175 and 234
+    where first_term_enrolled between 175 and 234 
 
 )
 
@@ -77,13 +77,16 @@ select
     always_noncredit_esl,
     always_credit_esl,
     both_credit_noncredit_esl,
+    first_esl_term,
+    first_term_integrated_esl_course,
+    first_term_enrolled,
 
     -- cohort + completion
     cohort,
     first_academic_year,
     first_cb21_level,
     first_cb21_level_adj,
-    first_college_name_adj,
-    first_college_group_adj
+    first_college_name,
+    first_college_group
 
 from students

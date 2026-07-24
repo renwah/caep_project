@@ -34,7 +34,8 @@ with
                             sx.gi03 < 700
                             and sx.sx02 = '19080808'
                             and sx.sx04 not in ('W', 'FW', 'DR')
-                    ) < 700
+                    )
+                    < 700
                 then
                     min(sx.gi03) filter (
                         where
@@ -102,12 +103,15 @@ with
                 when min(sx.gi03) < 700
                 then min(sx.gi03)
                 else min(sx.gi03) filter (where sx.gi03 between 300 and 999)
-            end as first_esl_term
+            end as first_esl_term, 
+            mode() within group (order by coll.college_name) as first_college_name,
+            case when min(cb.cb03) = '493087' then true else false end as first_term_integrated_esl_course
         from {{ source("caep_data", "sr1318sx") }} sx
         join
             {{ source("caep_data", "sr1318cb") }} cb
             on sx.cb00 = cb.cb00
             and cb.gi03 = sx.gi03
+        join {{ source("caep_data", "sr1318colldist") }} coll on sx.gi01 = coll.gi01_college
         where
             cb.cb03 in ('493084', '493085', '493086', '493087')
             and sx.sx02 = '19080808'  -- didn't drop
@@ -162,8 +166,7 @@ with
             on sx.gi03 = cb.gi03
             and sx.cb00 = cb.cb00
         where
-            sx.gi03 between 175 and 234
-            and cb.cb03 in ('493084', '493085', '493086', '493087')
+            cb.cb03 in ('493084', '493085', '493086', '493087')
             and sx.sx04 not in ('W', 'FW', 'DR')
             and sx.sx02 = '19080808'
 
@@ -222,11 +225,12 @@ with
             {{ source("caep_data", "sr1318colldist") }} coll
             on sx.gi01 = coll.gi01_college
         join {{ source("caep_data", "course_efl_score_mapping") }} m on cb.cb21 = m.cb21
+        join first_esl fe on sx.student_uuid = fe.student_uuid and sx.gi03 >= fe.first_esl_term
         where
-            sx.gi03 > 174
-            and left(term.year, 3) = '201'  -- during the period of interest
+            sx.gi03 > 174 and sx.gi03 < 300  -- only include terms in the study window, up to 2030
             and sx.sx02 = '19080808'  -- didn't drop
             and sx.sx04 not in ('W', 'NP', 'INP', 'FW', 'DR', 'F')  -- didn't fail/drop
+            and fe.first_esl_term is not null
             and cb.cb03 in ('493084', '493085', '493086')  -- only ESL read/write/listen/speak courses (should be A-F)
             and cb.cb04 = 'N'
             and cb.cb21 != 'Y'
@@ -237,10 +241,7 @@ with
 
         select
             student_uuid,
-            max(levels_below_transfer) as lowest_starting_level,
-            (array_agg(college_name order by levels_below_transfer desc))[
-                1
-            ] as first_college_name
+            max(levels_below_transfer) as lowest_starting_level
         from esl_terms_ranked
         where term_number = 1
         group by student_uuid
@@ -249,7 +250,7 @@ with
     -- convert level to CB21 for readability
     first_cb21 as (
 
-        select f.student_uuid, f.first_college_name, m.cb21 as first_cb21_level
+        select f.student_uuid, m.cb21 as first_cb21_level
         from first_term_level f
         join
             {{ source("caep_data", "course_efl_score_mapping") }} m
@@ -269,9 +270,7 @@ with
             {{ source("caep_data", "sr1318cb") }} cb
             on sx.gi03 = cb.gi03
             and cb.cb00 = sx.cb00
-        join
-            {{ source("caep_data", "course_efl_score_mapping") }} m
-            on cb.cb21 = m.cb21
+        join {{ source("caep_data", "course_efl_score_mapping") }} m on cb.cb21 = m.cb21
         where
             cb.cb03 in ('493084', '493085', '493086')  -- only ESL read/write/listen/speak courses (should be A-F)
             and sx.sx02 = '19080808'  -- didn't drop
@@ -419,14 +418,11 @@ with
             {{ source("caep_data", "sr1318colldist") }} coll
             on sx.gi01 = coll.gi01_college
         where
-            sx.gi03 > 174
-            and left(term.year, 3) = '201'
+            sx.gi03 between 175 and 300
             and sx.sx02 = '19080808'
             and sx.sx04 not in ('W', 'NP', 'INP', 'FW', 'DR', 'F')
             and cb.cb03 in ('493084', '493085', '493086', '493087')
-            and cb.cb21 not in ('G', 'H', 'Y')
             and cb.cb04 = 'N'
-
     ),
 
     term_data_adj as (
@@ -434,41 +430,53 @@ with
         select distinct
             eta.student_uuid,
             eta.term_number,
-            first_value(max(m.levels_below_transfer)) over (
+            --for lowest starting level, if all courses are 493087, return that level. otherwise, return the lowest starting level excluding 493087
+            first_value(
+            CASE 
+                WHEN (max(m.levels_below_transfer) filter (where cb03 != '493087')) is null
+                THEN max(m.levels_below_transfer)
+                ELSE (max(m.levels_below_transfer) filter (where cb03 != '493087')) 
+            END)
+             over (
                 partition by eta.student_uuid order by eta.term_number
-            ) as lowest_starting_level,
-            min(m.levels_below_transfer) as max_level_in_term
-            from esl_terms_adjusted eta
-        join
-            {{ source("caep_data", "course_efl_score_mapping") }} m
-            on eta.cb21_adjusted = m.cb21
-        group by
-            eta.student_uuid,
-            eta.term_number
-
-    ),
-    first_term_level_adj as (
-
-        select
-            student_uuid,
-            max(m.levels_below_transfer) as lowest_starting_level,
-            (array_agg(college_name_adj order by levels_below_transfer desc))[
-                1
-            ] as first_college_name_adj
+            ) as lowest_starting_level,  
+            CASE 
+                WHEN (min(m.levels_below_transfer) filter (where cb03 != '493087')) is null
+                THEN min(m.levels_below_transfer)
+                ELSE (min(m.levels_below_transfer) filter (where cb03 != '493087')) 
+            END
+             as max_level_in_term
         from esl_terms_adjusted eta
         join
             {{ source("caep_data", "course_efl_score_mapping") }} m
             on eta.cb21_adjusted = m.cb21
-        where term_number = 1
+        group by eta.student_uuid, eta.term_number
+
+    ),
+    -- find the first level a student started at. we're not interested in integrated
+    -- courses
+    first_term_level_adj as (
+
+        select
+            student_uuid,
+            -- return lowest starting level not including y, if all courses are y,
+            -- return lowest starting level including y
+            case
+                when max(m.levels_below_transfer) filter (where cb21 != 'Y') is null
+                then max(m.levels_below_transfer)
+                else max(m.levels_below_transfer) filter (where cb21 != 'Y')
+            end as lowest_starting_level
+        from esl_terms_adjusted eta
+        join
+            {{ source("caep_data", "course_efl_score_mapping") }} m
+            on eta.cb21_adjusted = m.cb21
+        where term_number = 1 and cb03 != '493087'
         group by student_uuid
 
     ),
     first_cb21_adj as (
 
-        select
-            f.student_uuid,
-            f.first_college_name_adj,
-            m.cb21 as first_cb21_level_adj
+        select f.student_uuid, m.cb21 as first_cb21_level_adj
         from first_term_level_adj f
         join
             {{ source("caep_data", "course_efl_score_mapping") }} m
@@ -487,8 +495,6 @@ with
         group by student_uuid, lowest_starting_level
 
     )
-    
-
 
 select
     s.*,
@@ -520,11 +526,11 @@ select
     c_adj.full_completion_levels_adj,
 
     -- first campus + first CB21 level (raw and college-adjusted)
-    fc.first_college_name,
+    fe.first_college_name,
+    fe.first_term_integrated_esl_course,
     fc.first_cb21_level,
     fc_adj.first_cb21_level_adj,
-    fc_adj.first_college_name_adj,
-    {{ classify_college("first_college_name_adj") }} as first_college_group_adj
+    {{ classify_college("first_college_name") }} as first_college_group
 
 from students s
 left join first_term_enrollment fte on s.uuid = fte.student_uuid

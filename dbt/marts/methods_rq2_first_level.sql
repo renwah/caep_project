@@ -1,22 +1,26 @@
 with demo_base as (
-    select * from {{ ref('methods_demographic_base') }}
+    select * from {{ ref('methods_demographic_base') }} 
 ),
 raw_numbers as (
 select
-    first_cb21_level_adj,
+    CASE WHEN first_cb21_level_adj is not null then first_cb21_level_adj
+         WHEN first_esl_term is null then 'Never Completed ESL After Enrollment'
+         WHEN always_credit_esl then 'Always Credit ESL'
+         WHEN first_term_integrated_esl_course then 'Integrated ESL Course'
+         ELSE 'other issue' end as first_cb21_level_desc,
     count(distinct uuid) as total,
     count(distinct uuid) filter (where always_noncredit_esl) as noncredit_only,
     count(distinct uuid) filter (where always_credit_esl) as credit_only,
     count(distinct uuid) filter (where both_credit_noncredit_esl) as both_credit_noncredit,
-    count(distinct uuid) filter (where first_college_group_adj = 'CONFIRMED CC - 6 LEVELS') as confirmed_cc_6_levels,
-    count(distinct uuid) filter (where first_college_group_adj = 'CONFIRMED CC - A/B') as confirmed_cc_a_b_levels,
-    count(distinct uuid) filter (where first_college_group_adj = 'CONFIRMED CC - E/F') as confirmed_cc_e_f_levels,
-    count(distinct uuid) filter (where first_college_group_adj = 'POSSIBLE CC') as possible_cc
-    from demo_base WHERE first_college_group_adj != 'Other CC'
-    group by first_cb21_level_adj
+    count(distinct uuid) filter (where first_college_group = 'CONFIRMED CC - 6 LEVELS') as confirmed_cc_6_levels,
+    count(distinct uuid) filter (where first_college_group = 'CONFIRMED CC - A/B') as confirmed_cc_a_b_levels,
+    count(distinct uuid) filter (where first_college_group = 'CONFIRMED CC - E/F') as confirmed_cc_e_f_levels,
+    count(distinct uuid) filter (where first_college_group = 'POSSIBLE CC') as possible_cc
+    from demo_base WHERE first_college_group != 'Other CC'
+    group by first_cb21_level_desc
 )
 select
-    first_cb21_level_adj,
+    first_cb21_level_desc,
     total,
     noncredit_only,
     {{ percentage('noncredit_only', 'total') }} as noncredit_only_pct,
@@ -32,10 +36,11 @@ select
     {{ percentage('confirmed_cc_e_f_levels', 'total') }} as confirmed_cc_e_f_levels_pct,
     possible_cc,
     {{ percentage('possible_cc', 'total') }} as possible_cc_pct
+
     from raw_numbers
 UNION ALL
 select 
-    'Total' as first_cb21_level_adj,
+    'Total' as first_cb21_level_desc,
     sum(total) as total,
     sum(noncredit_only) as noncredit_only,
     100,

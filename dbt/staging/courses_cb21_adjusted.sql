@@ -25,7 +25,7 @@ select
         else false
     end as is_credit_esl_course,
     case
-        when c.cb03 in ('493084', '493085', '493086', '493087') and c.cb04 = 'N'
+        when c.cb03 in ('493084', '493085', '493086') and c.cb04 = 'N'
         then
             case
                 when
@@ -99,7 +99,7 @@ select
                         when c.cb21 = 'D'
                         then 'D'
                         when c.cb21 = 'E'
-                        then 'F'  -- TODO: not sure what to do here
+                        then 'F'  
                         when c.cb21 = 'F'
                         then 'F'
                         when c.cb21 in ('Y', 'G', 'H')

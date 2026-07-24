@@ -1,0 +1,1 @@
+select * from {{ ref('students_course_info') }} where first_college_group IN ('CONFIRMED CC - 6 LEVELS', 'CONFIRMED CC - A/B', 'CONFIRMED CC - E/F')

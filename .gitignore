@@ -1,6 +1,7 @@
 /alembic
 /.claude
 /.env
+.env
 /.venv
 /.vscode
 /outputs
