@@ -2,7 +2,9 @@
 
 
 with
-    students as (select * from {{ ref("students_cohort_info") }}),
+    students as (select * from {{ ref("students_cohort_info") }}
+    where first_term_enrolled between 175 and 234
+    ),
 
     {# CB21 noncredit only A-F (adjusted depending on campus), 0 = not enrolled in noncredit ESL course, Y, G, H recorded as is ) for ONLY three topcodes (not ESL integrated)
 Any ESL enrollment per semester (1 for enrolled, 0 for not enrolled)
@@ -20,9 +22,8 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
             bool_or(
                 c.is_noncredit_esl_course::bool and c.is_credit_esl_course::bool
             ) as any_both_esl_enrollment,
-            first_value(c.esl_course_level_adjusted_for_college) over (
-                partition by e.student_uuid, e.gi03 order by csm.levels_below_transfer
-            ) as first_cb21_level_adjusted_for_college
+            min(CASE WHEN c.is_noncredit_esl_course::bool THEN c.esl_course_level_adjusted_for_college ELSE '0' END order by csm.levels_below_transfer)
+             as first_cb21_level_adjusted_for_college
         -- cb21 level for each term, adjusted for college (A-F, G/H, Y, 0)
         -- any esl enrollment per term
         -- any noncredit esl enrollment per term
@@ -37,7 +38,7 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
         where e.gi03 > 174 AND e.gi03 < 300 -- only include terms in the study window, up to 2030
         and e.sx02 = '19080808'                -- didn't drop
       and e.sx04 not in ('W', 'FW', 'DR')  -- didn't withdraw/drop
-        group by e.student_uuid, e.gi03, c.esl_course_level_adjusted_for_college, csm.levels_below_transfer
+        group by e.student_uuid, e.gi03
     ),
     student_codes as (
     select

@@ -1,4 +1,4 @@
-{{ config(materialized="view") }}
+{{ config(materialized="table") }}
 
 
 with courses as (select * from {{ source("caep_data", "sr1318cb") }})

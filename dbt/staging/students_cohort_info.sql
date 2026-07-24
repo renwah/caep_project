@@ -1,4 +1,4 @@
-{{ config(materialized="view") }}
+{{ config(materialized="table") }}
 
 -- students_cohort_info: cohort / sample / starting-point attributes, one row per
 -- student, layered onto students_degree_info. This is the final model in the

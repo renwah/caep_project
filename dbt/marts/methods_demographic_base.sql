@@ -43,8 +43,7 @@ select
     special_admit_dual_enrollment,
     case when pell_grant_recipient then true else false end as pell_grant_recipient,
 
-    -- starting level in the ESL sequence (college-adjusted)
-    first_cb21_level_adjusted           as first_cb21_level,
+
 
     case when english_or_math_enrollment then true else false end as english_or_math_enrollment,
 
@@ -82,31 +81,9 @@ select
     -- cohort + completion
     cohort,
     first_academic_year,
-    first_college_name,
     first_cb21_level,
     first_cb21_level_adj,
     first_college_name_adj,
     first_college_group_adj
-
-    -- study-sample category based on the first college attended
-    case
-        when first_college_name in (
-            'COLUMBIA','MONTEREY','MIRA COSTA','L.A. HARBOR','IRVINE VALLEY','DE ANZA','MT. SAN ANTONIO','DESERT',
-            'ALLAN HANCOCK','WOODLAND','GAVILAN','MARIN','PORTERVILLE','PALOMAR','IMPERIAL VALLEY','L.A. VALLEY',
-            'L.A. CITY','ALAMEDA','BAKERSFIELD','MADERA','LONG BEACH CITY','LANEY','CERRITOS','WEST VALLEY',
-            'NORTH ORANGE CONT','REEDLEY','ORANGE COAST','VENTURA','SAN DIEGO CONTINUING','COMPTON','SANTA ANA',
-            'CUESTA','SEQUOIAS','YUBA','SAN FRANCISCO CITY','OXNARD','L.A. MISSION','MENDOCINO','SANTA MONICA',
-            'CHABOT','CHAFFEY','SAN JOSE CITY','EAST L.A.','MODESTO','ANTELOPE VALLEY','SAN FRANCISCO CTRS',
-            'SANTIAGO CANYON','CITRUS','GLENDALE','VICTOR VALLEY','PALO VERDE','SADDLEBACK','CONTRA COSTA',
-            'FOOTHILL','DIABLO VALLEY','BARSTOW','MORENO VALLEY','GOLDEN WEST','RIO HONDO','FRESNO CITY','NORCO',
-            'MISSION','RIVERSIDE','SIERRA')
-            then 'Confirmed CC-Study Sample'
-        when first_college_name in (
-            'MERRITT','MERCED','HARTNELL','COALINGA','SHASTA','COASTLINE','LAKE TAHOE','PASADENA CITY',
-            'SANTA BARBARA CITY','CANYONS','SAN BERNARDINO','COPPER MOUNTAIN','SANTA ROSA','SOUTHWEST L.A.',
-            'EL CAMINO','LOS MEDANOS','NAPA VALLEY','LAS POSITAS')
-            then 'Possible CC - Study Sample Add'
-        else 'Other CC'
-    end                                 as main_campus_category
 
 from students
