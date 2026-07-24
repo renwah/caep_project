@@ -1,0 +1,24 @@
+# dbt connection profile for the CAEP project.
+#
+# dbt looks for profiles.yml in ~/.dbt by default. To use this one in the repo,
+# either run dbt with `--profiles-dir .` from the dbt/ directory, or set
+#   export DBT_PROFILES_DIR=/Users/renwah/open/caep_project/dbt
+#
+# The password is read from the DBT_PG_PASSWORD env var so it is never committed.
+#
+# NOTE ON SCHEMAS:
+#   - Raw data lives in the `caep_data` schema (declared as a dbt source).
+#   - dbt writes its models to `caep_analytics` so the `students` model does NOT
+#     overwrite the raw `caep_data.students` table it reads from.
+caep:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      user: renwah
+      password: "{{ env_var('DBT_PG_PASSWORD', '') }}"
+      dbname: postgres
+      schema: caep_analytics
+      threads: 4

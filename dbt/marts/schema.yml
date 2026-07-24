@@ -1,0 +1,248 @@
+version: 2
+
+models:
+  - name: methods_demographic_base
+    description: >
+      One row per student in the analysis sample (first_term_enrolled between 175
+      and 234), with staging fields recoded into the booleans and labels used by
+      the methods tables. Source: console_7.sql (demographic_base CTE).
+    columns:
+      - name: maskedsb00
+        description: Masked student identifier. One row per sampled student.
+        data_tests: [unique, not_null]
+      - name: uuid
+        description: Surrogate student id.
+        data_tests: [unique, not_null]
+      - name: age_at_first_term
+        description: Age recorded at the student's first term (passed through from demographics).
+      - name: gender
+        description: Gender code (SB04).
+      - name: latin_american
+        description: Boolean cast of the Latin American race flag.
+      - name: black
+        description: Boolean cast of the Black / African American race flag.
+      - name: aapi
+        description: Boolean cast of the Asian / Pacific Islander race flag.
+      - name: white
+        description: Boolean cast of the White race flag.
+      - name: indigenous_american
+        description: Boolean cast of the American Indian / Alaska Native race flag.
+      - name: unknown_race
+        description: True when race is unknown (boolean cast of no_data).
+      - name: two_or_more_races
+        description: True if two or more of the five race flags (Latin/Black/AAPI/Indigenous/White) are set.
+      - name: hispanic_non_hispanic
+        description: True if the student is Hispanic (hispanic_non_hispanic = 'Y'); false otherwise (combines 'N' and 'X').
+      - name: citizenship_earliest
+        description: Citizenship / immigration status code at entry (SB06).
+      - name: highest_ed
+        description: Highest education level before entry (first character of SB11).
+      - name: special_admit_dual_enrollment
+        description: True if ever a special-admit / dual-enrollment student.
+      - name: pell_grant_recipient
+        description: True if a Pell recipient (null treated as false).
+      - name: first_cb21_level
+        description: Starting ESL level — the college-adjusted first CB21 level from cohort info.
+      - name: english_or_math_enrollment
+        description: True if the student enrolled in more than one transfer-level English or Math course (null treated as false).
+      - name: earned_degree_3_year
+        description: >
+          True if the student earned a degree within their 3-year window — earliest
+          degree term is on or before term_in_6.
+      - name: earned_degree_6_year
+        description: True if the student earned a degree within their 6-year window — earliest degree term on or before term_in_12.
+      - name: eops_recipient
+        description: True if an EOPS recipient (null treated as false).
+      - name: has_disability
+        description: True if the student has a recorded primary disability (primary_disability is not null).
+      - name: sb14_student_ed_goal
+        description: Educational goal code at entry (SB14).
+      - name: goal_at_enrollment
+        description: Plain-text label for the SB14 educational goal code.
+      - name: ever_credit_esl
+        description: True if the student ever took a credit ESL course.
+      - name: always_noncredit_esl
+        description: True if all of the student's ESL courses were non-credit.
+      - name: always_credit_esl
+        description: True if all of the student's ESL courses were for credit.
+      - name: both_credit_noncredit_esl
+        description: True if a credit-ESL student also took non-credit ESL; null if never credit ESL.
+      - name: cohort
+        description: Half-year cohort of the first ESL term ('F' or 'S').
+      - name: first_academic_year
+        description: Academic year of the first ESL term.
+      - name: terms_to_full_completion_adjusted_bf_to_a
+        description: Terms until first reaching ESL level A; null if never reached.
+      - name: full_completion_levels_adjusted_bf_to_a
+        description: Number of levels below transfer the student started from before reaching level A.
+      - name: main_campus_category
+        description: >
+          Study-sample category based on the student's first college: 'Confirmed
+          CC-Study Sample', 'Possible CC - Study Sample Add', or 'Other CC'.
+
+  - name: methods_table1_demographics
+    description: >
+      Methods table 1 — a single row of counts across the analysis sample, covering
+      gender, race, age-at-entry bands, disability and citizenship. Source:
+      console_7.sql (table1).
+    columns:
+      - name: total
+        description: Total students in the analysis sample.
+      - name: gender_m
+        description: Count of students with gender 'M'.
+      - name: gender_f
+        description: Count of students with gender 'F'.
+      - name: gender_u
+        description: Count of students with a gender other than 'M' or 'F'.
+      - name: latin_american
+        description: Count flagged Latin American.
+      - name: black
+        description: Count flagged Black / African American.
+      - name: aapi
+        description: Count flagged Asian / Pacific Islander.
+      - name: white
+        description: Count flagged White.
+      - name: indigenous_american
+        description: Count flagged American Indian / Alaska Native.
+      - name: unknown_race
+        description: Count with unknown race.
+      - name: two_or_more_races
+        description: Count flagged with two or more races.
+      - name: traditional_age_at_entry
+        description: Count aged 24 or under at first term.
+      - name: over_traditional_age_at_entry
+        description: Count aged over 24 at first term.
+      - name: age_at_entry_below_18
+        description: Count aged under 18 at first term.
+      - name: age_at_entry_18_24
+        description: Count aged 18–24 at first term.
+      - name: age_at_entry_25_44
+        description: Count aged 25–44 at first term.
+      - name: age_at_entry_45_54
+        description: Count aged 45–54 at first term.
+      - name: age_at_entry_55_59
+        description: Count aged 55–59 at first term.
+      - name: age_at_entry_60_plus
+        description: Count aged 60–110 at first term.
+      - name: has_disability
+        description: Count with a recorded disability.
+      - name: not_has_disability
+        description: Count without a recorded disability.
+      - name: citizenship_earliest_us_citizen
+        description: Count with citizenship code '1' (U.S. citizen) at entry.
+      - name: citizenship_earliest_permanent_resident
+        description: Count with citizenship code '2' (permanent resident).
+      - name: citizenship_earliest_temporary_resident
+        description: Count with citizenship code '3' (temporary resident).
+      - name: citizenship_earliest_refugee_asylee
+        description: Count with citizenship code '4' (refugee / asylee).
+      - name: citizenship_earliest_student_visa
+        description: Count with citizenship code '5' (student visa).
+      - name: citizenship_earliest_other_status
+        description: Count with citizenship code '6' (other status).
+      - name: citizenship_earliest_unknown
+        description: Count with citizenship code 'X' or null (unknown).
+
+  - name: methods_table2_education
+    description: >
+      Methods table 2 — a single row of counts across the analysis sample for
+      highest education level before entry and stated educational goal. Source:
+      console_7.sql (table2).
+    columns:
+      - name: total
+        description: Total students in the analysis sample.
+      - name: highest_ed_no_high_school
+        description: Count with highest-ed code '0' (no high school).
+      - name: highest_ed_adult_school
+        description: Count with code '2' (adult school).
+      - name: highest_ed_high_school_diploma
+        description: Count with code '3' (high school diploma).
+      - name: highest_ed_ged_equivalent
+        description: Count with code '4' (GED equivalent).
+      - name: highest_ed_chs_proficiency_certificate
+        description: Count with code '5' (CHS proficiency certificate).
+      - name: highest_ed_foreign_secondary_school_diploma
+        description: Count with code '6' (foreign secondary school diploma).
+      - name: highest_ed_associate_degree
+        description: Count with code '7' (associate degree).
+      - name: highest_ed_bachelor_or_higher_degree
+        description: Count with code '8' (bachelor's or higher).
+      - name: highest_ed_unknown
+        description: Count with code 'X' or null (unknown).
+      - name: "Obtain an AD and transfer to a 4-year institution"
+        description: Count whose educational goal (SB14) is code 'A'.
+      - name: "Transfer to a 4-year institution without an AD"
+        description: Count whose goal is code 'B'.
+      - name: "Transfer to a 4-year institution without an associate degree"
+        description: Count whose goal is code 'C'.
+      - name: "Earn a vocational certificate without transfer"
+        description: Count whose goal is code 'E'.
+      - name: "Discover / formulate career interests, plans, goals"
+        description: Count whose goal is code 'F'.
+      - name: "Prepare for a new career (acquire job skills)"
+        description: Count whose goal is code 'G'.
+      - name: "Advance in current job / career (update job skills)"
+        description: Count whose goal is code 'H'.
+      - name: "Maintain certificate or license (e.g. Nursing, Real Estate)"
+        description: Count whose goal is code 'I'.
+      - name: "Educational development (intellectual, cultural)"
+        description: Count whose goal is code 'J'.
+      - name: "Improve basic skills in English, reading or math"
+        description: Count whose goal is code 'K'.
+      - name: "Complete credits for high school diploma or GED"
+        description: Count whose goal is code 'L'.
+      - name: "Undecided on goal"
+        description: Count whose goal is code 'M'.
+      - name: "To move from noncredit coursework to credit coursework"
+        description: Count whose goal is code 'N'.
+      - name: "4-year college student taking courses to meet requirements"
+        description: Count whose goal is code 'O'.
+
+  - name: methods_table3_program
+    description: >
+      Methods table 3 — a single row of counts across the analysis sample for
+      financial aid, special admit, English/Math enrollment, starting ESL level and
+      degree attainment. Source: console_7.sql (table3).
+    columns:
+      - name: total
+        description: Total students in the analysis sample.
+      - name: pell_grant_recipient
+        description: Count of Pell recipients.
+      - name: not_pell_grant_recipient
+        description: Count of non-Pell recipients.
+      - name: eops_recipient
+        description: Count of EOPS recipients.
+      - name: not_eops_recipient
+        description: Count of non-EOPS recipients.
+      - name: special_admit_dual_enrollment
+        description: Count of special-admit / dual-enrollment students.
+      - name: not_special_admit_dual_enrollment
+        description: Count of non special-admit students.
+      - name: english_or_math_enrollment
+        description: Count who enrolled in more than one transfer-level English or Math course.
+      - name: not_english_or_math_enrollment
+        description: Count who did not.
+      - name: starting_level_esl_a
+        description: Count whose starting (adjusted) ESL level is A.
+      - name: starting_level_esl_b
+        description: Count whose starting ESL level is B.
+      - name: starting_level_esl_c
+        description: Count whose starting ESL level is C.
+      - name: starting_level_esl_d
+        description: Count whose starting ESL level is D.
+      - name: starting_level_esl_e
+        description: Count whose starting ESL level is E.
+      - name: starting_level_esl_f
+        description: Count whose starting ESL level is F.
+      - name: starting_level_esl_g
+        description: Count whose starting ESL level is G.
+      - name: starting_level_esl_h
+        description: Count whose starting ESL level is H.
+      - name: starting_level_esl_y_credit
+        description: Count whose starting ESL level is Y (credit / integrated).
+      - name: starting_level_esl_unknown
+        description: Count with no determinable starting ESL level.
+      - name: earned_degree_3_year
+        description: Count who earned a degree within their 3-year window.
+      - name: not_earned_degree_3_year
+        description: Count who did not earn a degree within their 3-year window.

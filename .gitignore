@@ -1,0 +1,19 @@
+/alembic
+/.claude
+/.env
+/.venv
+/.vscode
+/outputs
+*.csv
+*.log
+/UNKNOWN.egg-info
+*.pyc
+.DS_Store
+__pycache__/
+/source_sql/*
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+.user.yml    

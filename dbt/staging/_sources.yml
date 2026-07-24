@@ -1,0 +1,41 @@
+version: 2
+
+sources:
+  - name: caep_data
+    description: >
+      Raw CalPASS/MIS data. Tables prefixed `sr` are the untouched source
+      extracts; the others were built by hand to work with that data. This dbt
+      project rebuilds the calculated `students` fields as models.
+    dbname: postgres
+    schema: caep_data
+    tables:
+      # Identity spine: one row per student, carrying the uuid that every raw
+      # sr* table already references via its student_uuid column.
+      - name: students
+        description: Existing per-student table; used here only for the (maskedsb00, uuid) identity mapping.
+
+      # Student demographics / details (one row per student per college per term).
+      - name: sr1318st
+        description: Student details (sb04 gender, sb29 race bitstring, sb06 citizenship, sb11 highest ed, std1 age).
+      - name: sr1318sd
+        description: Student disability records (sd01 = primary disability).
+      - name: sr1318sfa
+        description: Student financial aid awards (sf21 = award code; GP = Pell, GE = EOPS).
+
+      # Degrees / awards.
+      - name: sr1318sp
+        description: Student program awards (sp01 topcode, sp02 award code, sp03 award date YYYYMMDD).
+      - name: sp_award_types
+        description: Award ranking lookup (award_code, award_description, award_ranking).
+
+      # Enrollment / course tables used for cohort & CB21 logic.
+      - name: sr1318sx
+        description: Course enrollments (one row per student per course per term).
+      - name: sr1318cb
+        description: Course catalog (cb03 program code, cb04 credit status, cb21 ESL level).
+      - name: sr1318term
+        description: Term lookup (gi03 term code, year, term, quarter).
+      - name: sr1318colldist
+        description: College / district lookup (gi01_college, college_name).
+      - name: course_efl_score_mapping
+        description: Maps cb21 ESL level letters to numeric levels_below_transfer.

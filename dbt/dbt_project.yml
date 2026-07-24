@@ -1,0 +1,26 @@
+name: 'caep'
+version: '1.0.0'
+config-version: 2
+
+# Connects this project to the `caep` profile in profiles.yml.
+profile: 'caep'
+
+# The staging models live in dbt/staging (keeping the existing layout) rather
+# than the default models/ directory.
+model-paths: ["staging", "marts"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  caep:
+    # These are heavy aggregations over the raw sr* tables, so materialize as
+    # tables rather than views (a view would re-run every query).
+    +materialized: table
