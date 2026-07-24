@@ -21,8 +21,10 @@ sources:
         description: Student disability records (sd01 = primary disability).
       - name: sr1318sfa
         description: Student financial aid awards (sf21 = award code; GP = Pell, GE = EOPS).
-
-      # Degrees / awards.
+      - name: sr1318hf
+        description: Student head file.
+      - name: sr1318sb
+        description: Student basic info --populated per student per school enrolled.
       - name: sr1318sp
         description: Student program awards (sp01 topcode, sp02 award code, sp03 award date YYYYMMDD).
       - name: sp_award_types

@@ -83,3 +83,30 @@ needs a live connection to your local Postgres.
 - `students_cohort_info.in_sample` reproduces the `ells_started_17_w_attendance`
   sample definition from `building sample.sql` (ESL in the study window, 12+
   attendance hours, first ESL term in window, no ESL before the window).
+
+
+### scratch: macros to build:
+```
+select count(*), age_at_first_term from students WHERE first_term_enrolled BETWEEN 175 AND 234 group BY age_at_first_term order by age_at_first_term::int ;
+
+--macros:
+cb.cb03 in ('493084', '493085', '493086', '493087') --all esl courses
+cb.cb03 in ('493084', '493085', '493086') --all esl courses except integrated (for cb21 calculations)
+
+--combine terms into semesters:
+case
+    when trim(term.term) in ('SUMMER TERM', 'SUMMER QUARTER', 'FALL SEMESTER', 'FALL QUARTER', 'ANNUAL')
+        then 'F'
+    when trim(term.term) in ('WINTER INTERSESSION', 'WINTER QUARTER', 'SPRING SEMESTER', 'SPRING QUARTER')
+        then 'S'
+end as cohort
+
+--study terms of interest:
+sx.gi03 between 174 and 234
+
+
+--didn't drop or fail course:
+      and sx.sx02 = '19080808'                -- didn't drop
+      and sx.sx04 not in ('W', 'FW', 'DR')  -- didn't withdraw/drop
+      and sx.sx04 not in ('NP', 'INP', 'FW', 'F') --didn't fail
+```

@@ -53,13 +53,13 @@ models:
       - name: citizenship_earliest
         description: >
           Citizenship / immigration status code (SB06) from the student's earliest
-          term within the study window (terms 170–239, i.e. 2017-18 through 2022-23).
+          term within the study window (terms 175-234, i.e. 2017-18 through 2022-23).
       - name: citizenship_latest
         description: Citizenship status code (SB06) from the student's latest term within the study window.
       - name: highest_ed
         description: >
           Highest education level before entry (first character of SB11), taken as
-          the lowest code seen across the student's terms 170–239.
+          the lowest code seen across the student's terms 175-234.
       - name: primary_disability
         description: Primary disability code (SD01), lowest value across the student's disability records; null if none.
       - name: age_at_first_term
@@ -90,13 +90,13 @@ models:
       - name: earliest_degree_date
         description: >
           Date of the student's first award — the earliest SP03 award date (parsed
-          from YYYYMMDD), among awards in terms 170 and later.
+          from YYYYMMDD), among awards in terms 175 and later.
       - name: earliest_degree_type
         description: Award type code (SP02) of that earliest award.
       - name: earliest_degree_topcode
         description: TOP code (SP01) of the earliest award.
       - name: number_degrees_17_23
-        description: Count of awards the student earned in terms 170 and later (2017-18 onward).
+        description: Count of awards the student earned in terms 175 and later (2017-18 onward).
       - name: earliest_degree_term
         description: >
           Term code (GI03) corresponding to the earliest award's date, matched on
@@ -104,7 +104,7 @@ models:
       - name: highest_degree_earned
         description: >
           Award type code (SP02) of the student's highest-ranked award, using
-          sp_award_types.award_ranking (1 = highest), among awards in terms 170–239.
+          sp_award_types.award_ranking (1 = highest), among awards in terms 175-234.
       - name: highest_degree_earned_description
         description: Plain-text description of that highest-ranked award.
 
@@ -131,9 +131,9 @@ models:
           This is the term the cohort is keyed on.
       - name: in_sample
         description: >
-          True if the student is in the analysis sample: took ESL in terms 170–239
+          True if the student is in the analysis sample: took ESL in terms 175-234
           with at least 12 attendance hours in some academic year, first ESL term
-          in that window, and no ESL enrollment before term 170.
+          in that window, and no ESL enrollment before term 175.
       - name: first_academic_year
         description: Academic-year label (term.year) of the student's first ESL term.
       - name: cohort
@@ -147,15 +147,15 @@ models:
       - name: first_term_credit_and_noncredit
         description: True if the first term included both a non-credit and a credit ESL course.
       - name: ever_credit_esl
-        description: True if the student ever took a credit ESL course (CB04 in C/D) during terms 170–239.
+        description: True if the student ever took a credit ESL course (CB04 in C/D) during terms 175-234.
       - name: always_noncredit_esl
-        description: True if all of the student's ESL courses in terms 170–239 were non-credit.
+        description: True if all of the student's ESL courses in terms 175-234 were non-credit.
       - name: always_credit_esl
-        description: True if all of the student's ESL courses in terms 170–239 were for credit.
+        description: True if all of the student's ESL courses in terms 175-234 were for credit.
       - name: both_credit_noncredit_esl
         description: >
           For students who ever took credit ESL: true if they also took a non-credit
-          ESL course after term 174. Null for students who never took credit ESL.
+          ESL course after term 175. Null for students who never took credit ESL.
       - name: term_in_6
         description: >
           The latest term the student attended within the 6-term (~3-year) window
@@ -198,7 +198,7 @@ models:
       - name: any_esl_enrollment_by_term
         description: >
           Per-term sequence (ordered by term) of whether the student had any ESL
-          enrollment that term, each term rendered as 'true'/'false' and concatenated.
+          enrollment that term, each term rendered as 1 (true) or 0 (false) and concatenated.
       - name: any_noncredit_esl_enrollment_by_term
         description: Same per-term sequence, for any non-credit ESL enrollment that term.
       - name: any_credit_esl_enrollment_by_term
