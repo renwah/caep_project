@@ -23,12 +23,12 @@ demographics as (
         min(sb04)                                                                     as gender,
         max(left(sb29, 1))                                                            as hispanic_non_hispanic,
         max(case when substr(sb29, 2, 4) like '%Y%' then 'Y' else 'N' end)            as latin_american,
-        min(case
+        max(case
                 when substr(sb29, 6, 9) like '%Y%' or substr(sb29, 17, 4) like '%Y%'
                     then 'Y' else 'N' end)                                            as aapi,
-        min(substr(sb29, 5, 1))                                                       as black,
-        min(substr(sb29, 15, 1))                                                      as indigenous_american,
-        min(substr(sb29, 21, 1))                                                      as white,
+        max(substr(sb29, 15, 1))                                                       as black,
+        max(substr(sb29, 16, 1))                                                      as indigenous_american,
+        max(substr(sb29, 21, 1))                                                      as white,
         min(case when length(sb29) < 21 or sb29 not like '%Y%' then 'Y' else 'N' end) as no_data
     from {{ source('caep_data', 'sr1318st') }}
     group by maskedsb00

@@ -27,9 +27,9 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
             -- not incorrectly labeled Y level courses
             min(
                 case
+                --record for noncredit esl courses that are not integrated. if not, then record null
                     when c.is_noncredit_esl_course::bool and c.cb03 != '493087'
                     then c.esl_course_level_adjusted_for_college
-                    else '0'
                 end
                 order by csm.levels_below_transfer
             ) as first_cb21_level_adjusted_for_college,
