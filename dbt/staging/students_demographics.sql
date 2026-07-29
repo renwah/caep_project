@@ -15,21 +15,21 @@ with students as (
 ),
 
 -- gender + race, aggregated to one row per student across all of that student's
--- college records. The per-field min/max choices mirror the original queries.
+-- college records. If a student was ever recorded as a given race, they are assigned that race in the aggregate form.
 demographics as (
 
     select
         maskedsb00,
         min(sb04)                                                                     as gender,
-        max(left(sb29, 1))                                                            as hispanic_non_hispanic,
-        max(case when substr(sb29, 2, 4) like '%Y%' then 'Y' else 'N' end)            as latin_american,
-        max(case
+        bool_or(case when left(sb29, 1) = 'Y' then true end)                            as hispanic_non_hispanic,
+        bool_or(case when substr(sb29, 2, 4) like '%Y%' then true end)            as latin_american,
+        bool_or(case
                 when substr(sb29, 6, 9) like '%Y%' or substr(sb29, 17, 4) like '%Y%'
-                    then 'Y' else 'N' end)                                            as aapi,
-        max(substr(sb29, 15, 1))                                                       as black,
-        max(substr(sb29, 16, 1))                                                      as indigenous_american,
-        max(substr(sb29, 21, 1))                                                      as white,
-        min(case when length(sb29) < 21 or sb29 not like '%Y%' then 'Y' else 'N' end) as no_data
+                    then true end)                                            as aapi,
+        bool_or(case when substr(sb29, 15, 1) = 'Y' then true end)                       as black,
+        bool_or(case when substr(sb29, 16, 1) = 'Y' then true end)                       as indigenous_american,
+        bool_or(case when substr(sb29, 21, 1) = 'Y' then true end)                       as white,
+        bool_and(case when length(sb29) < 21 or sb29 not like '%Y%' then true end) as no_data
     from {{ source('caep_data', 'sr1318st') }}
     group by maskedsb00
 
