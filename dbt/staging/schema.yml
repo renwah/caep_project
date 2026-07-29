@@ -7,59 +7,51 @@ version: 2
 models:
   - name: students
     description: >
-      Identity spine — one row per student. Sourced directly from
-      caep_data.students, keeping only the identity keys; every calculated field
-      is rebuilt by the downstream students_* models.
+      Identity spine — one row per student. Sourced directly from caep_data.students, keeping only the identity keys; every calculated field is rebuilt by the downstream students_* models.
     columns:
       - name: maskedsb00
         description: Masked student identifier (MIS SB00). The natural key — one row per student.
-        data_tests: [unique, not_null]
+        data_tests: [ unique, not_null ]
       - name: uuid
         description: >
-          Surrogate student id carried over from caep_data.students. Every raw sr*
-          table already references this via its student_uuid column, so it is the
-          join key for uuid-based logic downstream.
-        data_tests: [unique, not_null]
+          Surrogate student id carried over from caep_data.students. Every raw sr* table already references this via its student_uuid column, so it is the join key for uuid-based logic downstream.
+        data_tests: [ unique, not_null ]
 
   - name: students_demographics
-    description: >
-      Students spine + one-row-per-student demographic attributes, aggregated from
-      the SR1318ST detail records (one row per student per college per term) and a
-      few other raw tables. Source logic: "demographics study.sql".
+    description: >-
+      Students spine + one-row-per-student demographic attributes, aggregated from the SR1318ST detail records (one row per student per college per term) and a few other raw tables. Source logic: "demographics study.sql".
     columns:
       - name: maskedsb00
         description: Masked student identifier. One row per student.
-        data_tests: [unique, not_null]
+        data_tests:
+          - unique
+          - not_null
       - name: gender
-        description: Gender code (SB04), taken as the lowest value across the student's detail records.
+        description: Gender code (SB04), taken as the lowest value across the student's detail records. (F, M, or U (last))
       - name: hispanic_non_hispanic
-        description: >
-          Hispanic ethnicity flag from the SB29 multi-race string: 'Y' if the first
-          character is 'Y' (Hispanic), otherwise 'N'/'X'. Highest value across records.
+        description: >-
+          Hispanic ethnicity boolean flag from the SB29 multi-race string: 'Y' if the first character is 'Y' (Hispanic), otherwise 'N'/'X'. Highest value across records.
       - name: latin_american
-        description: "'Y' if the SB29 race string flags Latin American origin (a 'Y' in characters 2–5), else 'N'."
+        description: "boolean if the SB29 race string flags Latin American origin (a 'Y' in characters 2–5)"
       - name: aapi
-        description: "'Y' if SB29 flags Asian or Pacific Islander origin (a 'Y' in characters 6–14 or 17–20), else 'N'."
+        description: "boolean-- if SB29 flags Asian or Pacific Islander origin (a 'Y' in characters 6–14 or 17–20)"
       - name: black
-        description: "Black / African American race flag — character 5 of the SB29 string ('Y' or 'N')."
+        description: "Black / African American race flag — character 15 of the SB29 string."
       - name: indigenous_american
-        description: "American Indian / Alaska Native race flag — character 15 of SB29 ('Y' or 'N')."
+        description: "American Indian / Alaska Native race flag — character 16 of SB29"
       - name: white
-        description: "White race flag — character 21 of SB29 ('Y' or 'N')."
+        description: "White race flag — character 21 of SB29"
       - name: no_data
-        description: >
-          'Y' when race is effectively unknown — the SB29 string is shorter than 21
-          characters or contains no 'Y' flags at all.
+        description: >-
+          true when race is effectively unknown — the SB29 string is shorter than 21 characters or contains no 'Y' flags at all. Returns true when all records are unknown.
       - name: citizenship_earliest
-        description: >
-          Citizenship / immigration status code (SB06) from the student's earliest
-          term within the study window (terms 175-234, i.e. 2017-18 through 2022-23).
+        description: >-
+          Citizenship / immigration status code (SB06) from the student's earliest term within the study window (terms 175-234, i.e. 2017-18 through 2022-23).
       - name: citizenship_latest
         description: Citizenship status code (SB06) from the student's latest term within the study window.
       - name: highest_ed
-        description: >
-          Highest education level before entry (first character of SB11), taken as
-          the lowest code seen across the student's terms 175-234.
+        description: >-
+          Highest education level before entry (first character of SB11), taken as the lowest code seen across the student's terms 175-234.
       - name: primary_disability
         description: Primary disability code (SD01), lowest value across the student's disability records; null if none.
       - name: age_at_first_term
@@ -69,10 +61,8 @@ models:
       - name: sb14_student_ed_goal
         description: Student's stated educational goal code (SB14) from their earliest term.
       - name: english_or_math_enrollment
-        description: >
-          True if the student enrolled in more than one transfer-level (CB05 in A/B)
-          English or Math course — English TOP codes 150100/150110/152000, Math
-          170000/170200/170100/170110/170170. Courses matched on course id (CB00) only.
+        description: >-
+          True if the student enrolled in more than one transfer-level (CB05 in A/B) English or Math course — English TOP codes 150100/150110/152000, Math 170000/170200/170100/170110/170170. Courses matched on course id (CB00) only.
       - name: pell_grant_recipient
         description: True if the student ever received a Pell grant (financial-aid award SF21 = 'GP').
       - name: eops_recipient
@@ -80,17 +70,14 @@ models:
 
   - name: students_degree_info
     description: >
-      students_demographics + degree / award attributes, read from SR1318SP
-      (awards) ranked against sp_award_types. Carries all upstream columns through.
-      Source logic: "demographics study.sql" (degree sections).
+      students_demographics + degree / award attributes, read from SR1318SP (awards) ranked against sp_award_types. Carries all upstream columns through. Source logic: "demographics study.sql" (degree sections).
     columns:
       - name: maskedsb00
         description: Masked student identifier. One row per student.
-        data_tests: [unique, not_null]
+        data_tests: [ unique, not_null ]
       - name: earliest_degree_date
         description: >
-          Date of the student's first award — the earliest SP03 award date (parsed
-          from YYYYMMDD), among awards in terms 175 and later.
+          Date of the student's first award — the earliest SP03 award date (parsed from YYYYMMDD), among awards in terms 175 and later.
       - name: earliest_degree_type
         description: Award type code (SP02) of that earliest award.
       - name: earliest_degree_topcode
@@ -99,47 +86,37 @@ models:
         description: Count of awards the student earned in terms 175 and later (2017-18 onward).
       - name: earliest_degree_term
         description: >
-          Term code (GI03) corresponding to the earliest award's date, matched on
-          the term's quarter/year encoding in sr1318term.
+          Term code (GI03) corresponding to the earliest award's date, matched on the term's quarter/year encoding in sr1318term.
       - name: highest_degree_earned
         description: >
-          Award type code (SP02) of the student's highest-ranked award, using
-          sp_award_types.award_ranking (1 = highest), among awards in terms 175-234.
+          Award type code (SP02) of the student's highest-ranked award, using sp_award_types.award_ranking (1 = highest), among awards in terms 175-234.
       - name: highest_degree_earned_description
         description: Plain-text description of that highest-ranked award.
 
   - name: students_cohort_info
     description: >
-      students_degree_info + cohort / sample / starting-point attributes. Carries
-      all upstream columns through. Source logic: "building sample.sql",
-      "console_2.sql", and the CB21 sections of "pathways_calculations.sql".
-      ESL courses are identified by CB03 in 493084/493085/493086/493087.
+      students_degree_info + cohort / sample / starting-point attributes. Carries all upstream columns through. Source logic: "building sample.sql", "console_2.sql", and the CB21 sections of "pathways_calculations.sql". ESL courses are identified by CB03 in 493084/493085/493086/493087.
     columns:
       - name: maskedsb00
         description: Masked student identifier. One row per student.
-        data_tests: [unique, not_null]
+        data_tests: [ unique, not_null ]
       - name: uuid
         description: Surrogate student id.
-        data_tests: [unique, not_null]
+        data_tests: [ unique, not_null ]
       - name: first_term_enrolled
         description: >
-          Earliest term (GI03) the student enrolled in any course. Placeholder term
-          codes (700+) are ignored unless the student has only placeholder terms.
+          Earliest term (GI03) the student enrolled in any course. Placeholder term codes (700+) are ignored unless the student has only placeholder terms.
       - name: first_esl_term
         description: >
-          Earliest term the student took an ESL course (same placeholder handling).
-          This is the term the cohort is keyed on.
+          Earliest term the student took an ESL course (same placeholder handling). This is the term the cohort is keyed on.
       - name: in_sample
         description: >
-          True if the student is in the analysis sample: took ESL in terms 175-234
-          with at least 12 attendance hours in some academic year, first ESL term
-          in that window, and no ESL enrollment before term 175.
+          True if the student is in the analysis sample: took ESL in terms 175-234 with at least 12 attendance hours in some academic year, first ESL term in that window, and no ESL enrollment before term 175.
       - name: first_academic_year
         description: Academic-year label (term.year) of the student's first ESL term.
       - name: cohort
         description: >
-          Half-year cohort of the first ESL term — 'F' for summer/fall/annual terms,
-          'S' for winter/spring terms.
+          Half-year cohort of the first ESL term — 'F' for summer/fall/annual terms, 'S' for winter/spring terms.
       - name: first_term_noncredit
         description: True if, in their first enrolled term, the student took at least one non-credit ESL course (CB04 = 'N').
       - name: first_term_credit_only
@@ -154,51 +131,38 @@ models:
         description: True if all of the student's ESL courses in terms 175-234 were for credit.
       - name: both_credit_noncredit_esl
         description: >
-          For students who ever took credit ESL: true if they also took a non-credit
-          ESL course after term 175. Null for students who never took credit ESL.
+          For students who ever took credit ESL: true if they also took a non-credit ESL course after term 175. Null for students who never took credit ESL.
       - name: term_in_6
         description: >
-          The latest term the student attended within the 6-term (~3-year) window
-          after their first term; null if none. Window boundaries follow the source's
-          fall/spring term arithmetic.
+          The latest term the student attended within the 6-term (~3-year) window after their first term; null if none. Window boundaries follow the source's fall/spring term arithmetic.
       - name: term_in_12
         description: >
-          The latest term attended between the 6-term and 12-term (~3–6 year) window
-          after the first term; null if none.
+          The latest term attended between the 6-term and 12-term (~3–6 year) window after the first term; null if none.
       - name: terms_to_full_completion_adjusted_bf_to_a
         description: >
-          Number of terms (ordinal, 1 = first term) until the student first reached
-          ESL level A (level 1), using college-adjusted CB21 levels over non-credit
-          ESL courses; null if they never reached level A.
+          Number of terms (ordinal, 1 = first term) until the student first reached ESL level A (level 1), using college-adjusted CB21 levels over non-credit ESL courses; null if they never reached level A.
       - name: full_completion_levels_adjusted_bf_to_a
         description: >
-          How many levels below transfer the student started before reaching level A
-          (their lowest starting level minus 1).
+          How many levels below transfer the student started before reaching level A (their lowest starting level minus 1).
       - name: first_college_name
         description: Name of the college where the student took their first-term non-credit ESL course.
       - name: first_cb21_level
         description: >
-          CB21 ESL level (A–F, G/H, or Y) of the student's lowest first-term
-          non-credit ESL course, mapped from levels_below_transfer.
+          CB21 ESL level (A–F, G/H, or Y) of the student's lowest first-term non-credit ESL course, mapped from levels_below_transfer.
       - name: first_cb21_level_adjusted
         description: >
-          first_cb21_level after applying the first college's level-collapsing rule:
-          some colleges merge level B into A, others merge E into F; all other levels
-          are unchanged.
+          first_cb21_level after applying the first college's level-collapsing rule: some colleges merge level B into A, others merge E into F; all other levels are unchanged.
 
   - name: students_course_info
     description: >
-      students_cohort_info + per-term ESL enrollment sequences. For each student,
-      terms are ordered chronologically and their status each term is concatenated
-      into a string. Carries all upstream columns through.
+      students_cohort_info + per-term ESL enrollment sequences. For each student, terms are ordered chronologically and their status each term is concatenated into a string. Carries all upstream columns through.
     columns:
       - name: uuid
         description: Surrogate student id. One row per student.
-        data_tests: [unique, not_null]
+        data_tests: [ unique, not_null ]
       - name: any_esl_enrollment_by_term
         description: >
-          Per-term sequence (ordered by term) of whether the student had any ESL
-          enrollment that term, each term rendered as 1 (true) or 0 (false) and concatenated.
+          Per-term sequence (ordered by term) of whether the student had any ESL enrollment that term, each term rendered as 1 (true) or 0 (false) and concatenated.
       - name: any_noncredit_esl_enrollment_by_term
         description: Same per-term sequence, for any non-credit ESL enrollment that term.
       - name: any_credit_esl_enrollment_by_term
@@ -207,13 +171,11 @@ models:
         description: Same per-term sequence, for terms where the student took both a non-credit and a credit ESL course.
       - name: first_cb21_level_adjusted_for_college_by_term
         description: >
-          Per-term sequence of the student's lowest college-adjusted CB21 ESL level
-          each term, concatenated in term order.
+          Per-term sequence of the student's lowest college-adjusted CB21 ESL level each term, concatenated in term order.
 
   - name: courses_cb21_adjusted
     description: >
-      Course catalog (SR1318CB) with ESL flags and a campus-adjusted CB21 level.
-      One row per course offering (term x course x campus).
+      Course catalog (SR1318CB) with ESL flags and a campus-adjusted CB21 level. One row per course offering (term x course x campus).
     columns:
       - name: term
         description: Term code (GI03) the course was offered.
@@ -237,6 +199,4 @@ models:
         description: 1 if the course is a credit ESL course (ESL and CB04 in C/D), else 0.
       - name: esl_course_level_adjusted_for_college
         description: >
-          For non-credit ESL courses, the CB21 level collapsed per the campus's rule
-          (some campuses merge B into A, others merge E into F); non-ESL and credit
-          courses keep their raw CB21 level.
+          For non-credit ESL courses, the CB21 level collapsed per the campus's rule (some campuses merge B into A, others merge E into F); non-ESL and credit courses keep their raw CB21 level.
