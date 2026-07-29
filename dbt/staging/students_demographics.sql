@@ -29,7 +29,7 @@ demographics as (
         bool_or(case when substr(sb29, 15, 1) = 'Y' then true end)                       as black,
         bool_or(case when substr(sb29, 16, 1) = 'Y' then true end)                       as indigenous_american,
         bool_or(case when substr(sb29, 21, 1) = 'Y' then true end)                       as white,
-        bool_and(case when length(sb29) < 21 or sb29 not like '%Y%' then true else falseend) as no_data
+        bool_and(case when length(sb29) < 21 or sb29 not like '%Y%' then true else false end) as no_data
     from {{ source('caep_data', 'sr1318st') }}
     group by maskedsb00
 
