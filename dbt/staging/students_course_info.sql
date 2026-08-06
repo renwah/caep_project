@@ -85,7 +85,7 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
             ) as highest_cb21_level_adjusted_achieved_rws,
             min(
                 case
-                --record for noncredit esl courses that are not integrated. if not, then record null
+                --record for noncredit esl courses that are not coded 'Y' (unspecified level). if not, then record null
                     when c.is_noncredit_esl_course::bool and e.sx04 not in ('W', 'NP', 'INP', 'FW', 'DR', 'F')  -- didn't fail/drop
                     then case when c.esl_course_level_adjusted_for_college in ('Y') then null
                     else c.esl_course_level_adjusted_for_college end

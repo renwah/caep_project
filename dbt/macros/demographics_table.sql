@@ -72,73 +72,63 @@
         '{{ cte_name }}' as cte_name,
         total,
         gender_m,
-        {{ percentage('gender_m', 'total') }}as gender_m_pct,
         gender_f,
-        {{ percentage('gender_f', 'total') }} as gender_f_pct,
         gender_u,
-        {{ percentage('gender_u', 'total') }} as gender_u_pct,
         latin_american,
-        {{ percentage('latin_american', 'total') }} as latin_american_pct,
         black,
-        {{ percentage('black', 'total') }} as black_pct,
         aapi,
-        {{ percentage('aapi', 'total') }} as aapi_pct,
         white,
-        {{ percentage('white', 'total') }} as white_pct,
         indigenous_american,
-        {{ percentage('indigenous_american', 'total') }} as indigenous_american_pct,
         unknown_race,
-        {{ percentage('unknown_race', 'total') }} as unknown_race_pct,
         two_or_more_races,
-        {{ percentage('two_or_more_races', 'total') }} as two_or_more_races_pct,
         traditional_age_at_entry,
-        {{ percentage('traditional_age_at_entry', 'total') }} as traditional_age_at_entry_pct,
         over_traditional_age_at_entry,
-        {{ percentage('over_traditional_age_at_entry', 'total') }} as over_traditional_age_at_entry_pct,
         age_at_entry_below_18,
-        {{ percentage('age_at_entry_below_18', 'total') }} as age_at_entry_below_18_pct,
         age_at_entry_18_24,
-        {{ percentage('age_at_entry_18_24', 'total') }} as age_at_entry_18_24_pct,
         age_at_entry_25_44,
-        {{ percentage('age_at_entry_25_44', 'total') }} as age_at_entry_25_44_pct,
         age_at_entry_45_54,
-        {{ percentage('age_at_entry_45_54', 'total') }} as age_at_entry_45_54_pct,
         age_at_entry_55_59,
-        {{ percentage('age_at_entry_55_59', 'total') }} as age_at_entry_55_59_pct,
         age_at_entry_60_plus,
-        {{ percentage('age_at_entry_60_plus', 'total') }} as age_at_entry_60_plus_pct,
         has_disability,
-        {{ percentage('has_disability', 'total') }} as has_disability_pct,
         not_has_disability,
-        {{ percentage('not_has_disability', 'total') }} as not_has_disability_pct,
         citizenship_earliest_us_citizen,
-        {{ percentage(
-            'citizenship_earliest_us_citizen', 'total'
-        ) }} as citizenship_earliest_us_citizen_pct,
         citizenship_earliest_permanent_resident,
-        {{ percentage(
-            'citizenship_earliest_permanent_resident', 'total'
-        ) }} as citizenship_earliest_permanent_resident_pct,
         citizenship_earliest_temporary_resident,
-        {{ percentage(
-            'citizenship_earliest_temporary_resident', 'total'
-        ) }} as citizenship_earliest_temporary_resident_pct,
         citizenship_earliest_refugee_asylee,
-        {{ percentage(
-            'citizenship_earliest_refugee_asylee', 'total'
-        ) }} as citizenship_earliest_refugee_asylee_pct,
         citizenship_earliest_student_visa,
-        {{ percentage(
-            'citizenship_earliest_student_visa', 'total'
-        ) }} as citizenship_earliest_student_visa_pct,
         citizenship_earliest_other_status,
-        {{ percentage(
-            'citizenship_earliest_other_status', 'total'
-        ) }} as citizenship_earliest_other_status_pct,
-        citizenship_earliest_unknown,
-        {{ percentage(
-            'citizenship_earliest_unknown', 'total'
-        ) }} as citizenship_earliest_unknown_pct
+        citizenship_earliest_unknown
     from counts
-
+    UNION ALL
+    select 
+        '{{ cte_name }}_pct' as cte_name,
+        100 as total,
+        {{ percentage('gender_m', 'total') }} as gender_m,
+        {{ percentage('gender_f', 'total') }} as gender_f,
+        {{ percentage('gender_u', 'total') }} as gender_u,
+        {{ percentage('latin_american', 'total') }} as latin_american,
+        {{ percentage('black', 'total') }} as black,
+        {{ percentage('aapi', 'total') }} as aapi,
+        {{ percentage('white', 'total') }} as white,
+        {{ percentage('indigenous_american', 'total') }} as indigenous_american,
+        {{ percentage('unknown_race', 'total') }} as unknown_race,
+        {{ percentage('two_or_more_races', 'total') }} as two_or_more_races,
+                {{ percentage('traditional_age_at_entry', 'total') }} as traditional_age_at_entry,
+        {{ percentage('over_traditional_age_at_entry', 'total') }} as over_traditional_age_at_entry,
+        {{ percentage('age_at_entry_below_18', 'total') }} as age_at_entry_below_18,
+        {{ percentage('age_at_entry_18_24', 'total') }} as age_at_entry_18_24,
+        {{ percentage('age_at_entry_25_44', 'total') }} as age_at_entry_25_44,
+        {{ percentage('age_at_entry_45_54', 'total') }} as age_at_entry_45_54,
+        {{ percentage('age_at_entry_55_59', 'total') }} as age_at_entry_55_59,
+        {{ percentage('age_at_entry_60_plus', 'total') }} as age_at_entry_60_plus,
+        {{ percentage('has_disability', 'total') }} as has_disability,
+        {{ percentage('not_has_disability', 'total') }} as not_has_disability,
+        {{ percentage('citizenship_earliest_us_citizen', 'total') }} as citizenship_earliest_us_citizen,
+        {{ percentage('citizenship_earliest_permanent_resident', 'total') }} as citizenship_earliest_permanent_resident,
+        {{ percentage('citizenship_earliest_temporary_resident', 'total') }} as citizenship_earliest_temporary_resident,
+        {{ percentage('citizenship_earliest_refugee_asylee', 'total') }} as citizenship_earliest_refugee_asylee,
+        {{ percentage('citizenship_earliest_student_visa', 'total') }} as citizenship_earliest_student_visa,
+        {{ percentage('citizenship_earliest_other_status', 'total') }} as citizenship_earliest_other_status,
+        {{ percentage('citizenship_earliest_unknown', 'total') }} as citizenship_earliest_unknown
+    from counts
 {% endmacro %}

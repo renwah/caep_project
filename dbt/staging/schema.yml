@@ -289,38 +289,38 @@ models:
         data_type: text
       - name: lowest_cb21_level_adjusted_rws_by_terms
         description: |-
-          Per term, what is the lowest cb21 of all the noncredit ESL courses (in the reading/writing/speaking/listening subjects) attempted (not passed) by the student? 
+          Per term, what is the lowest cb21 of all the noncredit ESL courses (in the reading/writing/speaking/listening subjects) attempted (not passed) by the student? If only a 'Y' level course was attempted, the value will be 1. If another course was taken along with a 'Y' level course, that course level will be recorded instead (letters outrank numbers in ordering). 
           0: no qualifying enrollment
-          1: Y level course attempted
+          1: (only)Y level course attempted
           A-H: CB21 level of course attempted
         data_type: text
       - name: lowest_cb21_level_adjusted_all_by_terms
         description: |-
-          Per term, what is the lowest cb21 of all the noncredit ESL courses (in all subjects including Integrated ESL) attempted (not passed) by the student? 
+          Per term, what is the lowest cb21 of all the noncredit ESL courses (in all subjects including Integrated ESL) attempted (not passed) by the student? If only a 'Y' level course was attempted, the value will be 1. If another course was taken along with a 'Y' level course, that course level will be recorded instead (letters outrank numbers in ordering). 
           0: no qualifying enrollment
-          1: Y level course attempted
+          1: (only) Y level course attempted
           A-H: CB21 level of course attempted
         data_type: text
       - name: lowest_cb21_level_adjusted_all_credit_types_by_terms
         description: |-
-          Per term, what is the lowest cb21 of all the ESL courses (in all subjects) attempted (not passed) by the student? 
+          Per term, what is the lowest cb21 of all the ESL courses (in all subjects) attempted (not passed) by the student? If only a 'Y' level course was attempted, the value will be 1. If another course was taken along with a 'Y' level course, that course level will be recorded instead (letters outrank numbers in ordering). 
           0: no qualifying enrollment
-          1: Y level course attempted
+          1: (only) Y level course attempted
           A-H: CB21 level of course attempted
         data_type: text
       - name: lowest_cb21_level_adjusted_a_f_only_collapsed_by_terms
         description: |-
-          Per term, what is the lowest cb21 of all the noncredit ESL courses (in all subjects) attempted (not passed) by the student? G and H are coded as "F". 
+          Per term, what is the lowest cb21 of all the noncredit ESL courses (in all subjects) attempted (not passed) by the student? G and H are coded as "F". If only a 'Y' level course was attempted, the value will be 1. If another course was taken along with a 'Y' level course, that course level will be recorded instead (letters outrank numbers in ordering). 
           0: no qualifying enrollment
-          1: Y level course attempted
+          1: (only) Y level course attempted
           A-F: CB21 level of course attempted
         data_type: text
       - name: lowest_cb21_level_adjusted_a_f_only_others_0_by_terms
         description: |-
-          Per term, what is the lowest cb21 of all the noncredit ESL courses (in all subjects) attempted (not passed) by the student? G and H are coded as "0". 
+          Per term, what is the lowest cb21 of all the noncredit ESL courses (in all subjects) attempted (not passed) by the student? G and H are coded as "0". If only a 'Y' level course was attempted, the value will be 1. If another course was taken along with a 'Y' level course, that course level will be recorded instead (letters outrank numbers in ordering). 
           0: no qualifying enrollment
           1: (only) Y level course attempted
-          A-F: lowset CB21 level of courses attempted that term
+          A-F: lowest CB21 level of courses attempted that term
         data_type: text
       - name: highest_cb21_level_adjusted_achieved_rws_by_terms
         description: |-

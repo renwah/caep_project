@@ -86,6 +86,8 @@ models:
       gender, race, age-at-entry bands, disability and citizenship. Source:
       console_7.sql (table1).
     columns:
+      - name: cte_name
+        description: Name of the "universe" used to generate this table (table1). i.e. could be "total_uni", "noncredit_only_uni", etc. "pct" columns represent the percent of the universe that is listed so that these values appear side by side when the table is transposed (as it is in the final version). 
       - name: total
         description: Total students in the analysis sample.
       - name: gender_m
@@ -149,6 +151,8 @@ models:
       highest education level before entry and stated educational goal. Source:
       console_7.sql (table2).
     columns:
+      - name: cte_name
+        description: Name of the "universe" used to generate this table (table1). i.e. could be "total_uni", "noncredit_only_uni", etc. "pct" columns represent the percent of the universe that is listed so that these values appear side by side when the table is transposed (as it is in the final version). 
       - name: total
         description: Total students in the analysis sample.
       - name: highest_ed_no_high_school
@@ -204,6 +208,8 @@ models:
       financial aid, special admit, English/Math enrollment, starting ESL level and
       degree attainment. Source: console_7.sql (table3).
     columns:
+      - name: cte_name
+        description: Name of the "universe" used to generate this table (table1). i.e. could be "total_uni", "noncredit_only_uni", etc. "pct" columns represent the percent of the universe that is listed so that these values appear side by side when the table is transposed (as it is in the final version). 
       - name: total
         description: Total students in the analysis sample.
       - name: pell_grant_recipient
