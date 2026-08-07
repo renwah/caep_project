@@ -4,19 +4,19 @@
 -- Source: console_7.sql (table2).
 with total_uni as (
 
-    select * from {{ ref('methods_demographic_base') }}
+    select * from {{ ref('methods_demographic_base') }} where first_college_group IN ('CONFIRMED CC - 6 LEVELS', 'CONFIRMED CC - A/B', 'CONFIRMED CC - E/F')
 
 ),
 noncred_only_uni as (
-        select * from {{ ref('methods_demographic_base') }}
+        select * from total_uni
         where always_noncredit_esl
 ),
 credit_only_uni as (
-        select * from {{ ref('methods_demographic_base') }}
+        select * from total_uni
         where always_credit_esl
 ),
 both_uni as (
-        select * from {{ ref('methods_demographic_base') }}
+        select * from total_uni
         where both_credit_noncredit_esl
 ),
 total_tbl as (

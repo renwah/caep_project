@@ -21,14 +21,14 @@ demographics as (
     select
         maskedsb00,
         min(sb04)                                                                     as gender,
-        bool_or(case when left(sb29, 1) = 'Y' then true end)                            as hispanic_non_hispanic,
-        bool_or(case when substr(sb29, 2, 4) like '%Y%' then true end)            as latin_american,
+        bool_or(case when left(sb29, 1) = 'Y' then true else false end)                            as hispanic_non_hispanic,
+        bool_or(case when substr(sb29, 2, 4) like '%Y%' then true else false end)            as latin_american,
         bool_or(case
                 when substr(sb29, 6, 9) like '%Y%' or substr(sb29, 17, 4) like '%Y%'
-                    then true end)                                            as aapi,
-        bool_or(case when substr(sb29, 15, 1) = 'Y' then true end)                       as black,
-        bool_or(case when substr(sb29, 16, 1) = 'Y' then true end)                       as indigenous_american,
-        bool_or(case when substr(sb29, 21, 1) = 'Y' then true end)                       as white,
+                    then true else false end)                                            as aapi,
+        bool_or(case when substr(sb29, 15, 1) = 'Y' then true else false end)                       as black,
+        bool_or(case when substr(sb29, 16, 1) = 'Y' then true else false end)                       as indigenous_american,
+        bool_or(case when substr(sb29, 21, 1) = 'Y' then true else false end)                       as white,
         bool_and(case when length(sb29) < 21 or sb29 not like '%Y%' then true else false end) as no_data
     from {{ source('caep_data', 'sr1318st') }}
     group by maskedsb00

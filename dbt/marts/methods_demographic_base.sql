@@ -27,15 +27,15 @@ select
     -- demographics
     age_at_first_term,
     gender,
-    latin_american::bool                as latin_american,
-    black::bool                         as black,
-    aapi::bool                          as aapi,
-    white::bool                         as white,
-    indigenous_american::bool           as indigenous_american,
-    no_data::bool                       as unknown_race,
+    latin_american,
+    black,
+    aapi,
+    white,
+    indigenous_american,
+    no_data as unknown_race,
     (
-        (latin_american::bool::int + black::bool::int + aapi::bool::int
-         + indigenous_american::bool::int + white::bool::int) >= 2
+        (latin_american::int + black::int + aapi::int
+         + indigenous_american::int + white::int) >= 2
     )                                   as two_or_more_races,
     case when hispanic_non_hispanic = 'Y' then true else false end as hispanic_non_hispanic,
     citizenship_earliest,
@@ -86,6 +86,7 @@ select
     first_academic_year,
     first_cb21_level,
     first_cb21_level_adj,
+    first_cb21_level_credit_only,
     first_college_name,
     first_college_group
 

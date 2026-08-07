@@ -100,9 +100,11 @@ with
         select
             sx.student_uuid,
             case
-                when min(sx.gi03) < 700
+                --if the greatest term is in the 2000s (i.e. no 1900s enrollment), then return the lowest term from the 2000s.
+                when max(sx.gi03) < 270
                 then min(sx.gi03)
-                else min(sx.gi03) filter (where sx.gi03 between 300 and 999)
+                --if the first term is above 270 (i.e. could be from 1928 or above), then return the lowest term from 270 to 999 (i.e. 1928 or above). Real data starts in the 1970s, but this covers the complete range in the case statement. 
+                else min(sx.gi03) filter (where sx.gi03 between 270 and 999)
             end as first_esl_term, 
             mode() within group (order by coll.college_name) as first_college_name,
             case when min(cb.cb03) = '493087' then true else false end as first_term_integrated_esl_course
@@ -231,9 +233,8 @@ with
             and sx.sx02 = '19080808'  -- didn't drop
             and sx.sx04 not in ('W', 'NP', 'INP', 'FW', 'DR', 'F')  -- didn't fail/drop
             and fe.first_esl_term is not null
-            and cb.cb03 in ('493084', '493085', '493086')  -- only ESL read/write/listen/speak courses (should be A-F)
+            and cb.cb03 in ('493084', '493085', '493086', '493087') 
             and cb.cb04 = 'N'
-            and cb.cb21 != 'Y'
 
     ),
     -- find actual lowest level
@@ -272,7 +273,7 @@ with
             and cb.cb00 = sx.cb00
         join {{ source("caep_data", "course_efl_score_mapping") }} m on cb.cb21 = m.cb21
         where
-            cb.cb03 in ('493084', '493085', '493086')  -- only ESL read/write/listen/speak courses (should be A-F)
+            cb.cb03 in ('493084', '493085', '493086', '493087') 
             and sx.sx02 = '19080808'  -- didn't drop
             and sx.sx04 not in ('W', 'NP', 'INP', 'FW', 'DR', 'F')  -- didn't fail/drop
         group by sx.student_uuid
@@ -530,6 +531,7 @@ select
     fe.first_term_integrated_esl_course,
     fc.first_cb21_level,
     fc_adj.first_cb21_level_adj,
+    fc_co.first_cb21_level_credit_only,
     {{ classify_college("first_college_name") }} as first_college_group
 
 from students s
@@ -543,3 +545,4 @@ left join term_windows tw on s.uuid = tw.student_uuid
 left join completers_adj c_adj on s.uuid = c_adj.student_uuid
 left join first_cb21 fc on s.uuid = fc.student_uuid
 left join first_cb21_adj fc_adj on s.uuid = fc_adj.student_uuid
+left join first_term_cb21_credit_only fc_co on s.uuid = fc_co.student_uuid
