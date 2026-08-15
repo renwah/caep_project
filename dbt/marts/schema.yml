@@ -3,16 +3,14 @@ version: 2
 models:
   - name: methods_demographic_base
     description: >
-      One row per student in the analysis sample (first_term_enrolled between 175
-      and 234), with staging fields recoded into the booleans and labels used by
-      the methods tables. Source: console_7.sql (demographic_base CTE).
+      One row per student in the analysis sample (first_term_enrolled between 175 and 234), with staging fields recoded into the booleans and labels used by the methods tables. Source: console_7.sql (demographic_base CTE).
     columns:
       - name: maskedsb00
         description: Masked student identifier. One row per sampled student.
-        data_tests: [unique, not_null]
+        data_tests: [ unique, not_null ]
       - name: uuid
         description: Surrogate student id.
-        data_tests: [unique, not_null]
+        data_tests: [ unique, not_null ]
       - name: age_at_first_term
         description: Age recorded at the student's first term (passed through from demographics).
       - name: gender
@@ -47,8 +45,7 @@ models:
         description: True if the student enrolled in more than one transfer-level English or Math course (null treated as false).
       - name: earned_degree_3_year
         description: >
-          True if the student earned a degree within their 3-year window — earliest
-          degree term is on or before term_in_6.
+          True if the student earned a degree within their 3-year window — earliest degree term is on or before term_in_6.
       - name: earned_degree_6_year
         description: True if the student earned a degree within their 6-year window — earliest degree term on or before term_in_12.
       - name: eops_recipient
@@ -77,17 +74,14 @@ models:
         description: Number of levels below transfer the student started from before reaching level A.
       - name: main_campus_category
         description: >
-          Study-sample category based on the student's first college: 'Confirmed
-          CC-Study Sample', 'Possible CC - Study Sample Add', or 'Other CC'.
+          Study-sample category based on the student's first college: 'Confirmed CC-Study Sample', 'Possible CC - Study Sample Add', or 'Other CC'.
 
   - name: methods_table1_demographics
     description: >
-      Methods table 1 — a single row of counts across the analysis sample, covering
-      gender, race, age-at-entry bands, disability and citizenship. Source:
-      console_7.sql (table1).
+      Methods table 1 — a single row of counts across the analysis sample, covering gender, race, age-at-entry bands, disability and citizenship. Source: console_7.sql (table1).
     columns:
       - name: cte_name
-        description: Name of the "universe" used to generate this table (table1). i.e. could be "total_uni", "noncredit_only_uni", etc. "pct" columns represent the percent of the universe that is listed so that these values appear side by side when the table is transposed (as it is in the final version). 
+        description: Name of the "universe" used to generate this table (table1). i.e. could be "total_uni", "noncredit_only_uni", etc. "pct" columns represent the percent of the universe that is listed so that these values appear side by side when the table is transposed (as it is in the final version).
       - name: total
         description: Total students in the analysis sample.
       - name: gender_m
@@ -147,12 +141,10 @@ models:
 
   - name: methods_table2_education
     description: >
-      Methods table 2 — a single row of counts across the analysis sample for
-      highest education level before entry and stated educational goal. Source:
-      console_7.sql (table2).
+      Methods table 2 — a single row of counts across the analysis sample for highest education level before entry and stated educational goal. Source: console_7.sql (table2).
     columns:
       - name: cte_name
-        description: Name of the "universe" used to generate this table (table1). i.e. could be "total_uni", "noncredit_only_uni", etc. "pct" columns represent the percent of the universe that is listed so that these values appear side by side when the table is transposed (as it is in the final version). 
+        description: Name of the "universe" used to generate this table (table1). i.e. could be "total_uni", "noncredit_only_uni", etc. "pct" columns represent the percent of the universe that is listed so that these values appear side by side when the table is transposed (as it is in the final version).
       - name: total
         description: Total students in the analysis sample.
       - name: highest_ed_no_high_school
@@ -204,12 +196,10 @@ models:
 
   - name: methods_table3_program
     description: >
-      Methods table 3 — a single row of counts across the analysis sample for
-      financial aid, special admit, English/Math enrollment, starting ESL level and
-      degree attainment. Source: console_7.sql (table3).
+      Methods table 3 — a single row of counts across the analysis sample for financial aid, special admit, English/Math enrollment, starting ESL level and degree attainment. Source: console_7.sql (table3).
     columns:
       - name: cte_name
-        description: Name of the "universe" used to generate this table (table1). i.e. could be "total_uni", "noncredit_only_uni", etc. "pct" columns represent the percent of the universe that is listed so that these values appear side by side when the table is transposed (as it is in the final version). 
+        description: Name of the "universe" used to generate this table (table1). i.e. could be "total_uni", "noncredit_only_uni", etc. "pct" columns represent the percent of the universe that is listed so that these values appear side by side when the table is transposed (as it is in the final version).
       - name: total
         description: Total students in the analysis sample.
       - name: pell_grant_recipient
@@ -252,3 +242,133 @@ models:
         description: Count who earned a degree within their 3-year window.
       - name: not_earned_degree_3_year
         description: Count who did not earn a degree within their 3-year window.
+  - name: flat_file_64_only
+    columns:
+      - name: maskedsb00
+        data_type: text
+        data_tests: [ unique, not_null ]
+      - name: uuid
+        data_type: uuid
+        data_tests: [ unique, not_null ]
+      - name: gender
+        data_type: text
+      - name: hispanic_non_hispanic
+        data_type: boolean
+      - name: latin_american
+        data_type: boolean
+      - name: aapi
+        data_type: boolean
+      - name: black
+        data_type: boolean
+      - name: indigenous_american
+        data_type: boolean
+      - name: white
+        data_type: boolean
+      - name: no_data
+        data_type: boolean
+      - name: citizenship_earliest
+        data_type: text
+      - name: citizenship_latest
+        data_type: text
+      - name: highest_ed
+        data_type: text
+      - name: primary_disability
+        data_type: text
+      - name: age_at_first_term
+        data_type: text
+      - name: special_admit_dual_enrollment
+        data_type: boolean
+      - name: sb14_student_ed_goal
+        data_type: text
+      - name: english_or_math_enrollment
+        data_type: boolean
+      - name: pell_grant_recipient
+        data_type: boolean
+      - name: eops_recipient
+        data_type: boolean
+      - name: earliest_degree_date
+        data_type: date
+      - name: earliest_degree_type
+        data_type: text
+      - name: earliest_degree_topcode
+        data_type: integer
+      - name: number_degrees_17_23
+        data_type: bigint
+      - name: earliest_degree_term
+        data_type: integer
+      - name: highest_degree_earned
+        data_type: text
+      - name: highest_degree_earned_description
+        data_type: text
+      - name: first_term_enrolled
+        data_type: integer
+      - name: first_esl_term
+        data_type: integer
+      - name: first_academic_year
+        data_type: text
+      - name: cohort
+        data_type: text
+      - name: first_term_noncredit
+        data_type: boolean
+      - name: first_term_credit_only
+        data_type: boolean
+      - name: first_term_credit_and_noncredit
+        data_type: boolean
+      - name: ever_credit_esl
+        data_type: boolean
+      - name: always_noncredit_esl
+        data_type: boolean
+      - name: always_credit_esl
+        data_type: boolean
+      - name: both_credit_noncredit_esl
+        data_type: boolean
+      - name: terms_to_full_completion_adj
+        data_type: bigint
+      - name: full_completion_levels_adj
+        data_type: integer
+      - name: first_college_name
+        data_type: text
+      - name: first_term_integrated_esl_course
+        data_type: boolean
+      - name: first_cb21_level
+        data_type: text
+      - name: first_cb21_level_adj
+        data_type: text
+      - name: first_cb21_level_credit_only
+        data_type: text
+      - name: first_college_group
+        data_type: text
+      - name: any_esl_enrollment_by_terms
+        data_type: text
+      - name: any_noncredit_esl_enrollment_by_terms
+        data_type: text
+      - name: any_credit_esl_enrollment_by_terms
+        data_type: text
+      - name: any_both_esl_enrollment_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_rws_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_all_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_all_credit_types_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_a_f_only_collapsed_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_a_f_only_others_0_by_terms
+        data_type: text
+      - name: highest_cb21_level_adjusted_achieved_rws_by_terms
+        data_type: text
+      - name: highest_cb21_level_adjusted_achieved_all_by_terms
+        data_type: text
+      - name: any_493084_course_enrollment_by_terms
+        data_type: text
+      - name: any_493085_course_enrollment_by_terms
+        data_type: text
+      - name: any_493086_course_enrollment_by_terms
+        data_type: text
+      - name: any_493087_course_enrollment_by_terms
+        data_type: text
+      - name: term_in_6
+        data_type: integer
+      - name: term_in_12
+        data_type: integer

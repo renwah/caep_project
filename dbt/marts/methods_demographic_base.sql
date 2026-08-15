@@ -6,7 +6,7 @@
 --
 -- Source: console_7.sql ("methods tables 1-3", the `demographic_base` CTE).
 -- Sample filter: first_term_enrolled between 175 and 234.
---
+-- Filter: first_esl_term is not null.
 -- The pure-placeholder columns from the source (ever_developmental_english,
 -- ever_developmental_math, transferred_4_year_college,
 -- completed_transfer_level_english_3_6_year, full_time_student,
@@ -16,7 +16,7 @@
 with students as (
 
     select * from {{ ref('students_cohort_info') }}
-    where first_term_enrolled between 175 and 234 
+    where first_term_enrolled between 175 and 234 and first_esl_term is not null
 
 )
 
@@ -48,8 +48,10 @@ select
     case when english_or_math_enrollment then true else false end as english_or_math_enrollment,
 
     -- degree earned within 3-year (6-term) and 6-year (12-term) windows
-    case when earliest_degree_term <= term_in_6  then true else false end as earned_degree_3_year,
-    case when earliest_degree_term <= term_in_12 then true else false end as earned_degree_6_year,
+    --case when earliest_degree_term <= term_in_6  then true else false end 
+    null as earned_degree_3_year,
+    --case when earliest_degree_term <= term_in_12 then true else false end 
+    null as earned_degree_6_year,
 
     case when eops_recipient then true else false end as eops_recipient,
     case when primary_disability is not null then true else false end as has_disability,

@@ -149,7 +149,7 @@ with
             end as cohort
         from first_esl fe
         join
-            {{ source("caep_data", "sr1318term") }} term
+            {{ ref('terms_adjusted') }} term
             on fe.first_esl_term = term.gi03
         group by fe.student_uuid, cohort, first_academic_year
     ),
@@ -214,22 +214,22 @@ with
             dense_rank() over (
                 partition by sx.student_uuid order by sx.gi03 asc
             ) as term_number,
-            m.levels_below_transfer,
-            coll.college_name
+            m.levels_below_transfer, 
+            sx.gi03
         from {{ source("caep_data", "sr1318sx") }} sx
         join
             {{ source("caep_data", "sr1318cb") }} cb
             on sx.cb00 = cb.cb00
             and sx.gi03 = cb.gi03
             and sx.gi01 = cb.gi01
-        join {{ source("caep_data", "sr1318term") }} term on sx.gi03 = term.gi03
+        join {{ ref('terms_adjusted') }} term on sx.gi03 = term.gi03
         join
             {{ source("caep_data", "sr1318colldist") }} coll
             on sx.gi01 = coll.gi01_college
         join {{ source("caep_data", "course_efl_score_mapping") }} m on cb.cb21 = m.cb21
         join first_esl fe on sx.student_uuid = fe.student_uuid and sx.gi03 >= fe.first_esl_term
         where
-            sx.gi03 > 174 and sx.gi03 < 300  -- only include terms in the study window, up to 2030
+            sx.gi03 > 174 and sx.gi03 < 270  -- only include terms in the study window, up to 2027
             and sx.sx02 = '19080808'  -- didn't drop
             and sx.sx04 not in ('W', 'NP', 'INP', 'FW', 'DR', 'F')  -- didn't fail/drop
             and fe.first_esl_term is not null
@@ -326,7 +326,7 @@ with
             end as latest_12_term
         from first_esl fe
         join
-            {{ source("caep_data", "sr1318term") }} term
+            {{ ref('terms_adjusted') }} term
             on fe.first_esl_term = term.gi03
         where fe.first_esl_term is not null
 
@@ -336,16 +336,22 @@ with
 
         select
             tb.student_uuid,
-            max(sx.gi03) filter (
-                where sx.gi03 between tb.first_esl_term + 1 and tb.latest_6_term
+            max(etr.gi03) filter (
+                where etr.gi03 between tb.first_esl_term + 1 and tb.latest_6_term
             ) as term_in_6,
-            max(sx.gi03) filter (
-                where sx.gi03 between tb.latest_6_term + 1 and tb.latest_12_term
-            ) as term_in_12
+            max(etr.gi03) filter (
+                where etr.gi03 between tb.latest_6_term + 1 and tb.latest_12_term
+            ) as term_in_12,
+            max(etr.term_number) filter (
+                where etr.gi03 between tb.first_esl_term + 1 and tb.latest_6_term
+            ) as term_in_6_count,
+            max(etr.term_number) filter (
+                where etr.gi03 between tb.latest_6_term + 1 and tb.latest_12_term
+            ) as term_in_12_count
         from term_bounds tb
         join
-            {{ source("caep_data", "sr1318sx") }} sx
-            on tb.student_uuid = sx.student_uuid
+            esl_terms_ranked etr
+            on tb.student_uuid = etr.student_uuid
         group by tb.student_uuid
 
     ),
@@ -414,7 +420,7 @@ with
             on sx.cb00 = cb.cb00
             and sx.gi03 = cb.gi03
             and sx.gi01 = cb.gi01
-        join {{ source("caep_data", "sr1318term") }} term on sx.gi03 = term.gi03
+        join {{ ref('terms_adjusted') }} term on sx.gi03 = term.gi03
         join
             {{ source("caep_data", "sr1318colldist") }} coll
             on sx.gi01 = coll.gi01_college
@@ -431,21 +437,9 @@ with
         select distinct
             eta.student_uuid,
             eta.term_number,
-            --for lowest starting level, if all courses are 493087, return that level. otherwise, return the lowest starting level excluding 493087
-            first_value(
-            CASE 
-                WHEN (max(m.levels_below_transfer) filter (where cb03 != '493087')) is null
-                THEN max(m.levels_below_transfer)
-                ELSE (max(m.levels_below_transfer) filter (where cb03 != '493087')) 
-            END)
-             over (
-                partition by eta.student_uuid order by eta.term_number
-            ) as lowest_starting_level,  
-            CASE 
-                WHEN (min(m.levels_below_transfer) filter (where cb03 != '493087')) is null
-                THEN min(m.levels_below_transfer)
-                ELSE (min(m.levels_below_transfer) filter (where cb03 != '493087')) 
-            END
+            max(m.levels_below_transfer)
+             as lowest_starting_level,  
+            min(m.levels_below_transfer)
              as max_level_in_term
         from esl_terms_adjusted eta
         join
@@ -471,7 +465,7 @@ with
         join
             {{ source("caep_data", "course_efl_score_mapping") }} m
             on eta.cb21_adjusted = m.cb21
-        where term_number = 1 and cb03 != '493087'
+        where term_number = 1
         group by student_uuid
 
     ),
@@ -490,10 +484,10 @@ with
         select
             student_uuid,
             min(term_number) as terms_to_full_completion_adj,
-            (lowest_starting_level - 1) as full_completion_levels_adj
+            (max(lowest_starting_level) - 1) as full_completion_levels_adj
         from term_data_adj
         where max_level_in_term = 1
-        group by student_uuid, lowest_starting_level
+        group by student_uuid
 
     )
 
@@ -521,8 +515,6 @@ select
     end as both_credit_noncredit_esl,
 
     -- attendance windows + "B/F to A" completion
-    tw.term_in_6,
-    tw.term_in_12,
     c_adj.terms_to_full_completion_adj,
     c_adj.full_completion_levels_adj,
 

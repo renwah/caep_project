@@ -131,6 +131,82 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
             and e.sx02 = '19080808'  -- didn't drop
         group by e.student_uuid, e.gi03
     ),
+        cross_join_absolute as (
+        select
+            uuid,
+            (left(term.year, 4)||term.quarter)::int as term,
+            gi03
+    from "postgres"."caep_analytics"."terms_adjusted" term
+    cross join students s
+    where term.gi03 > 174 and term.gi03 < 300
+    ),
+    per_term_absolute as (
+        select
+            uuid,
+            term2.term,
+            case when max(per_term_info.lowest_cb21_level_adjusted_rws) is null then '-' else max(per_term_info.lowest_cb21_level_adjusted_rws) end as lowest_cb21_level_adjusted_rws_abs,
+            case when max(per_term_info.lowest_cb21_level_adjusted_all) is null then '-' else max(per_term_info.lowest_cb21_level_adjusted_all) end as lowest_cb21_level_adjusted_all_abs,
+            case when max(per_term_info.lowest_cb21_level_adjusted_all_credit_types) is null then '-' else max(per_term_info.lowest_cb21_level_adjusted_all_credit_types) end as lowest_cb21_level_adjusted_all_credit_types_abs,
+            case when max(per_term_info.lowest_cb21_level_adjusted_a_f_only_collapsed) is null then '-' else max(per_term_info.lowest_cb21_level_adjusted_a_f_only_collapsed) end as lowest_cb21_level_adjusted_a_f_only_collapsed_abs,
+            case when max(per_term_info.lowest_cb21_level_adjusted_a_f_only_others_0) is null then '-' else max(per_term_info.lowest_cb21_level_adjusted_a_f_only_others_0) end as lowest_cb21_level_adjusted_a_f_only_others_0_abs,
+            case when min(per_term_info.highest_cb21_level_adjusted_achieved_rws) is null then '-' else min(per_term_info.highest_cb21_level_adjusted_achieved_rws) end as highest_cb21_level_adjusted_achieved_rws_abs,
+            case when min(per_term_info.highest_cb21_level_adjusted_achieved_all) is null then '-' else min(per_term_info.highest_cb21_level_adjusted_achieved_all) end as highest_cb21_level_adjusted_achieved_all_abs,
+            case when min(per_term_info.highest_cb21_level_adjusted_achieved_crnc) is null then '-' else min(per_term_info.highest_cb21_level_adjusted_achieved_crnc) end as highest_cb21_level_adjusted_achieved_crnc_abs,
+            case when bool_or(per_term_info.any_esl_enrollment::boolean) is null then '-' else bool_or(per_term_info.any_esl_enrollment::boolean)::integer::text end as any_esl_enrollment_abs,
+            case when bool_or(per_term_info.any_noncredit_esl_enrollment::boolean) is null then '-' else bool_or(per_term_info.any_noncredit_esl_enrollment::boolean)::integer::text end as any_noncredit_esl_enrollment_abs,
+            case when bool_or(per_term_info.any_credit_esl_enrollment::boolean) is null then '-' else bool_or(per_term_info.any_credit_esl_enrollment::boolean)::integer::text end as any_credit_esl_enrollment_abs,
+            case when bool_or(per_term_info.any_both_esl_enrollment::boolean) is null then '-' else bool_or(per_term_info.any_both_esl_enrollment::boolean)::integer::text end as any_both_esl_enrollment_abs,
+            case when bool_or(per_term_info.any_493084_course_enrollment::boolean) is null then '-' else bool_or(per_term_info.any_493084_course_enrollment::boolean)::integer::text end as any_493084_course_enrollment_abs,
+            case when bool_or(per_term_info.any_493085_course_enrollment::boolean) is null then '-' else bool_or(per_term_info.any_493085_course_enrollment::boolean)::integer::text
+            end as any_493085_course_enrollment_abs,
+            case when bool_or(per_term_info.any_493086_course_enrollment::boolean) is null then '-' else bool_or(per_term_info.any_493086_course_enrollment::boolean)::integer::text end as any_493086_course_enrollment_abs,
+            case when bool_or(per_term_info.any_493087_course_enrollment::boolean) is null then '-' else bool_or(per_term_info.any_493087_course_enrollment::boolean)::integer::text end as any_493087_course_enrollment_abs
+    from cross_join_absolute term2 
+    full outer join per_term_info on per_term_info.term = term2.gi03 and per_term_info.student_uuid = term2.uuid
+    where term2.gi03 > 174 and term2.gi03 < 300
+    group by uuid, term2.term
+    ),
+    -- term_in_6 / term_in_12 (console_2.sql): the latest term a student attended
+    -- within the 6-term (3yr) and 12-term (6yr) windows after their first term.
+    -- The FALL/SPRING window boundaries mirror the source arithmetic exactly.
+    term_bounds as (
+
+        select
+            s.uuid as student_uuid,
+            s.first_esl_term,
+            case
+                when left(s.first_esl_term::text, 2) = substr(term.year, 2, 2)  -- fall cohort
+                then ((s.first_esl_term / 10) * 10) + 30 + 8
+                else ((s.first_esl_term / 10) * 10) + 30 + 4  -- spring cohort
+            end as latest_6_term,
+            case
+                when left(s.first_esl_term::text, 2) = substr(term.year, 2, 2)
+                then ((s.first_esl_term / 10) * 10) + 60 + 8
+                else ((s.first_esl_term / 10) * 10) + 60 + 4
+            end as latest_12_term
+        from students s
+        join
+            {{ ref('terms_adjusted') }} term
+            on s.first_esl_term = term.gi03
+    ),
+
+    term_windows as (
+
+        select
+            tb.student_uuid,
+            max(pti.term) filter (
+                where pti.term between tb.first_esl_term + 1 and tb.latest_6_term
+            ) as term_in_6,
+            max(pti.term) filter (
+                where pti.term between tb.latest_6_term + 1 and tb.latest_12_term
+            ) as term_in_12
+        from term_bounds tb
+        join
+            per_term_info pti
+            on tb.student_uuid = pti.student_uuid
+        group by tb.student_uuid
+
+    ),
     student_codes as (
         select
             s.uuid,
@@ -155,6 +231,27 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
         from students s
         left join per_term_info p on s.uuid = p.student_uuid
         group by s.uuid
+    ),
+    student_codes_absolute as (
+        select abs.uuid as sca_uuid,
+        {{ stringify('abs','any_esl_enrollment_abs') }},
+        {{ stringify('abs','any_noncredit_esl_enrollment_abs') }},
+        {{ stringify('abs','any_credit_esl_enrollment_abs') }},
+        {{ stringify('abs','any_both_esl_enrollment_abs') }},
+        {{ stringify('abs','lowest_cb21_level_adjusted_rws_abs') }},
+        {{ stringify('abs','lowest_cb21_level_adjusted_all_abs') }},
+        {{ stringify('abs','lowest_cb21_level_adjusted_a_f_only_collapsed_abs') }},
+        {{ stringify('abs','lowest_cb21_level_adjusted_a_f_only_others_0_abs') }},
+        {{ stringify('abs','lowest_cb21_level_adjusted_all_credit_types_abs') }},
+        {{ stringify('abs','highest_cb21_level_adjusted_achieved_rws_abs') }},
+        {{ stringify('abs','highest_cb21_level_adjusted_achieved_all_abs') }},
+        {# {{ stringify('abs','highest_cb21_level_adjusted_achieved_crnc_abs') }}, #}
+        {{ stringify('abs','any_493084_course_enrollment_abs') }},
+        {{ stringify('abs','any_493085_course_enrollment_abs') }},
+        {{ stringify('abs','any_493086_course_enrollment_abs') }},
+        {{ stringify('abs','any_493087_course_enrollment_abs') }}
+        from per_term_absolute abs
+        group by abs.uuid
     )
 -- add fields to existing fields
 select
@@ -174,6 +271,11 @@ select
     sc.any_493084_course_enrollment_by_terms,
     sc.any_493085_course_enrollment_by_terms,
     sc.any_493086_course_enrollment_by_terms,
-    sc.any_493087_course_enrollment_by_terms
-from student_codes sc
-join students s on sc.uuid = s.uuid
+    sc.any_493087_course_enrollment_by_terms,
+    tw.term_in_6,
+    tw.term_in_12,
+    sca.*
+from students s
+join student_codes sc on sc.uuid = s.uuid
+join term_windows tw on s.uuid = tw.student_uuid
+join student_codes_absolute sca on s.uuid = sca.sca_uuid

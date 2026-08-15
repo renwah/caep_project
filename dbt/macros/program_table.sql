@@ -25,10 +25,9 @@
                 count(*) filter (where first_cb21_level_adj = 'F' OR first_cb21_level_credit_only = 'F')                          as starting_level_esl_f,
                 count(*) filter (where first_cb21_level_adj = 'G' OR first_cb21_level_credit_only = 'G')                          as starting_level_esl_g,
                 count(*) filter (where first_cb21_level_adj = 'H' OR first_cb21_level_credit_only = 'H')                          as starting_level_esl_h,
+                count(*) filter (where first_cb21_level_adj = 'Y')                                                                as starting_level_esl_y_noncredit,
                 count(*) filter (where first_cb21_level_credit_only = 'Y')                                                        as starting_level_esl_y_credit,
-                count(*) filter (where first_cb21_level_adj is null AND first_cb21_level_credit_only is null)                        as starting_level_esl_unknown,
-                count(*) filter (where earned_degree_3_year)                            as earned_degree_3_year,
-                count(*) filter (where not earned_degree_3_year)                        as not_earned_degree_3_year
+                count(*) filter (where first_cb21_level_adj is null AND first_cb21_level_credit_only is null)                        as starting_level_esl_unknown
                 from db
                     )
     select
@@ -51,6 +50,7 @@
         starting_level_esl_g,
         starting_level_esl_h,
         starting_level_esl_y_credit,
+        starting_level_esl_y_noncredit,
         starting_level_esl_unknown,
         earned_degree_3_year,
         not_earned_degree_3_year    
@@ -76,6 +76,7 @@
         {{ percentage('starting_level_esl_g', 'total') }} as starting_level_esl_g,
         {{ percentage('starting_level_esl_h', 'total') }} as starting_level_esl_h,
         {{ percentage('starting_level_esl_y_credit', 'total') }} as starting_level_esl_y_credit,
+        {{ percentage('starting_level_esl_y_noncredit', 'total') }} as starting_level_esl_y_noncredit,
         {{ percentage('starting_level_esl_unknown', 'total') }} as starting_level_esl_unknown,
         {{ percentage('earned_degree_3_year', 'total') }} as earned_degree_3_year,
         {{ percentage('not_earned_degree_3_year', 'total') }} as not_earned_degree_3_year
