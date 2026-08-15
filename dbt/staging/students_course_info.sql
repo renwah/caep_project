@@ -134,7 +134,7 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
         cross_join_absolute as (
         select
             uuid,
-            (left(term.year, 4)||term.quarter)::int as term,
+            ('20'||left(gi03::text, 2)||term.quarter)::int as term,
             gi03
     from "postgres"."caep_analytics"."terms_adjusted" term
     cross join students s
