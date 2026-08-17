@@ -246,10 +246,14 @@ models:
     columns:
       - name: maskedsb00
         data_type: text
-        data_tests: [ unique, not_null ]
+        data_tests:
+          - unique
+          - not_null
       - name: uuid
         data_type: uuid
-        data_tests: [ unique, not_null ]
+        data_tests:
+          - unique
+          - not_null
       - name: gender
         data_type: text
       - name: hispanic_non_hispanic
@@ -375,3 +379,45 @@ models:
       - name: non_64_college_enrollment
         data_type: boolean
         description: True if the student ever enrolled in a college outside of the 64 colleges of interest (i.e. any college with a first_college_group of 'O' or 'P').
+      - name: multiple_colleges
+        data_type: boolean
+      - name: college_group_enrollment_by_terms
+        data_type: text
+      - name: sca_uuid
+        data_type: uuid
+      - name: any_esl_enrollment_abs_by_terms
+        data_type: text
+      - name: any_noncredit_esl_enrollment_abs_by_terms
+        data_type: text
+      - name: any_credit_esl_enrollment_abs_by_terms
+        data_type: text
+      - name: any_both_esl_enrollment_abs_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_rws_abs_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_all_abs_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_a_f_only_collapsed_abs_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_a_f_only_others_0_abs_by_terms
+        data_type: text
+      - name: lowest_cb21_level_adjusted_all_credit_types_abs_by_terms
+        data_type: text
+      - name: highest_cb21_level_adjusted_achieved_rws_abs_by_terms
+        data_type: text
+      - name: highest_cb21_level_adjusted_achieved_all_abs_by_terms
+        data_type: text
+      - name: any_493084_course_enrollment_abs_by_terms
+        data_type: text
+      - name: any_493085_course_enrollment_abs_by_terms
+        data_type: text
+      - name: any_493086_course_enrollment_abs_by_terms
+        data_type: text
+      - name: any_493087_course_enrollment_abs_by_terms
+        data_type: text
+      - name: observation_6_term
+        data_type: boolean
+        description: true if the first_esl_term is at least 6 semesters before the final semester/term we have data on (264)
+      - name: observation_12_term
+        data_type: boolean
+        description: true if the first_esl_term is at least 12 semesters before the final semester/term (264) 
