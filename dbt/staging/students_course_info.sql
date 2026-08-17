@@ -5,7 +5,7 @@ with
     students as (
         select *
         from {{ ref("students_cohort_info") }}
-        where first_term_enrolled between 175 and 234 and first_esl_term is not null
+        where first_term_enrolled between 175 and 234 and first_esl_term is not null and first_esl_term between 175 and 264
     ),
 
     {# CB21 noncredit only A-F (adjusted depending on campus), 0 = not enrolled in noncredit ESL course, Y, G, H recorded as is ) for ONLY three topcodes (not ESL integrated)
