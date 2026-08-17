@@ -267,6 +267,9 @@ models:
         data_type: text
       - name: first_college_group
         data_type: text
+      - name: multiple_colleges
+        data_type: boolean
+        description: True if the student took ESL courses at more than one college during the study window (terms 175-234). Note--these may be colleges with the same college group (i.e., won't show up in related variables college_group_enrollment_by_terms or non_64_college_enrollment).
       - name: any_esl_enrollment_by_terms
         description: |-
           0: no ESL enrollment during a term of enrollment for the student
@@ -358,6 +361,14 @@ models:
           0: no qualifying courses enrolled
           1: qualifying course enrolled
         data_type: text
+      - name: college_group_enrollment_by_terms
+        description: |-
+          Per-term sequence of the student's college group enrollment, concatenated in term order. Each term is represented by a single character:
+          A: CONFIRMED CC - A/B
+          E: CONFIRMED CC - E/F
+          6: CONFIRMED CC - 6 LEVELS
+          P: POSSIBLE CC
+          O: OTHER (any other college)
 
   - name: courses_cb21_adjusted
     description: >

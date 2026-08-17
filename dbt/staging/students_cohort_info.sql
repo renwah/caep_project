@@ -107,6 +107,7 @@ with
                 else min(sx.gi03) filter (where sx.gi03 between 270 and 999)
             end as first_esl_term, 
             mode() within group (order by coll.college_name) as first_college_name,
+            case when count(distinct coll.college_name) > 1 then true else false end as multiple_colleges,
             case when min(cb.cb03) = '493087' then true else false end as first_term_integrated_esl_course
         from {{ source("caep_data", "sr1318sx") }} sx
         join
@@ -496,6 +497,7 @@ select
 
     fte.first_term_enrollment as first_term_enrolled,
     fe.first_esl_term,
+    fe.multiple_colleges,
 
     -- which sample / cohort
     ct.first_academic_year,

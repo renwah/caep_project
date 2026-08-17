@@ -372,3 +372,6 @@ models:
         data_type: integer
       - name: term_in_12
         data_type: integer
+      - name: non_64_college_enrollment
+        data_type: boolean
+        description: True if the student ever enrolled in a college outside of the 64 colleges of interest (i.e. any college with a first_college_group of 'O' or 'P').

@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', alias='degree_expanded_' ~ run_started_at.strftime('%Y%m%d')) }}
 
 WITH students AS (SELECT *
                   FROM {{ ref('students_course_info') }}

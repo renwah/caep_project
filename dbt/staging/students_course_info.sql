@@ -112,7 +112,15 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
             end as any_493086_course_enrollment,
             case 
                 when bool_or(c.cb03 = '493087' and e.sx04 not in ('W', 'FW', 'DR')) then 1 else 0
-            end as any_493087_course_enrollment
+            end as any_493087_course_enrollment, 
+            case 
+                when
+                    {{ classify_college("min(coll.college_name)") }} = 'CONFIRMED CC - A/B' then 'A'
+                when {{ classify_college("min(coll.college_name)") }} = 'CONFIRMED CC - E/F' then 'E'
+                when {{ classify_college("min(coll.college_name)") }} = 'CONFIRMED CC - 6 LEVELS' then '6'
+                when {{ classify_college("min(coll.college_name)") }} = 'POSSIBLE CC' then 'P'
+                else 'O'
+            end as college_group_enrollment
 
 
         -- cb21 level for each term, adjusted for college (A-F, G/H, Y, 0)
@@ -125,11 +133,14 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
         join
             {{ source("caep_data", "course_efl_score_mapping") }} csm
             on c.cb21 = csm.cb21
+        join 
+            {{ source("caep_data", "sr1318colldist") }} coll
+            on e.gi01 = coll.gi01_college
         where
             e.gi03 > 174
             and e.gi03 < 300  -- only include terms in the study window, up to 2030
             and e.sx02 = '19080808'  -- didn't drop
-        group by e.student_uuid, e.gi03
+        group by e.student_uuid, e.gi03, coll.college_name
     ),
         cross_join_absolute as (
         select
@@ -225,7 +236,8 @@ Any both ESL enrollment per semester (1 for credit, 0 for not enrolled IN BOTH) 
             {{ stringify('p','any_493084_course_enrollment') }},
             {{ stringify('p','any_493085_course_enrollment') }},
             {{ stringify('p','any_493086_course_enrollment') }},
-            {{ stringify('p','any_493087_course_enrollment') }}
+            {{ stringify('p','any_493087_course_enrollment') }}, 
+            {{ stringify('p','college_group_enrollment') }}
 
 
         from students s
@@ -272,6 +284,7 @@ select
     sc.any_493085_course_enrollment_by_terms,
     sc.any_493086_course_enrollment_by_terms,
     sc.any_493087_course_enrollment_by_terms,
+    sc.college_group_enrollment_by_terms,
     tw.term_in_6,
     tw.term_in_12,
     sca.*
